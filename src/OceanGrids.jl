@@ -26,6 +26,23 @@ struct OceanGrid
     nboxes
 end
 
+struct OceanCurvilinearGrid
+    lat_3D       # °
+    lon_3D       # °
+    depth_3D     # m
+    δx_3D        # m
+    δy_3D        # m
+    δz_3D        # m
+    volume_3D    # m³
+    depth_top    # m
+    depth_top_3D # m
+    A_2D         # m²
+    nlon
+    nlat
+    ndepth
+    nboxes
+end
+
 const TU = AbstractArray{<:Quantity}
 
 function OceanGrid(elon::T, elat::U, edepth::V; R=upreferred(6371.0u"km")) where {T<:TU, U<:TU, V<:TU}
@@ -158,6 +175,6 @@ function Base.iterate(g::OceanGrid, i)
     end
 end
 
-export OceanGrid, volume_3D, box
+export OceanGrid, OceanCurvilinearGrid, volume_3D, box
 
 end # module
