@@ -21,14 +21,9 @@
 </p>
 
 This package is a dependency of [AIBECS](https://github.com/briochemc/AIBECS.jl.git).
-It defines two types for objects used by AIBECS:
-- the grids
-- the transport matrices
-The goal of [OceanGrids](https://github.com/briochemc/AIBECS.jl.git) is to standardize the format of these objects in order for AIBECS to use without confusion, regardless of the ocean grid or circulation that it uses.
+It defines types for grids used by AIBECS:
 
-For example, the transport matrix from products of the Ocean Circulation Inverse Model (OCIM, see [*DeVries et al*., 2014](https://doi.org/10.1002/2013GB004739)) are traditionally built as flux convergences with unit yr<sup>-1</sup>.
-This is different from the format adopted in AIBECS, which expects transport matrices as flux divergences and in the SI unit of s<sup>-1</sup>.
-In a similar vein, units for the grid data in OCIM products are not documented, so that it is easy to get confused and carry dimensional inconsistencies in one's model.
+The goal of [OceanGrids](https://github.com/briochemc/AIBECS.jl.git) is to standardize the format of grids in order for AIBECS to avoid confusion when swapping the circulation it uses for another.
+
+For example, units for the grid data in the Ocean Circulation Inverse Model (OCIM, see [*DeVries et al*., 2014](https://doi.org/10.1002/2013GB004739)) products are not documented, so that it is easy to get confused and carry dimensional inconsistencies in one's model.
 [OceanGrids](https://github.com/briochemc/AIBECS.jl.git) attempts to fix these discrepancies by always using the same format and provide tests to ensure some level of consistency.
-
- 
