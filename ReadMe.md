@@ -21,7 +21,7 @@
 </p>
 
 This package is a dependency of [AIBECS](https://github.com/briochemc/AIBECS.jl.git).
-It defines types for grids used by AIBECS:
+It defines types for grids used by AIBECS.
 
 The goal of [OceanGrids](https://github.com/briochemc/AIBECS.jl.git) is to standardize the format of grids in order for AIBECS to avoid confusion when swapping the circulation it uses for another.
 
