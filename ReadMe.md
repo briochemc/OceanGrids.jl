@@ -13,7 +13,7 @@
 </p>
 <p>
   <a href="https://ci.appveyor.com/project/briochemc/OceanGrids-jl">
-    <img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/briochemc/OceanGrids-jl.svg?branch=master">
+    <img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/6egisrrfgqnyu43n?svg=true">
   </a>
   <a href="https://codecov.io/gh/briochemc/OceanGrids.jl">
     <img src="https://codecov.io/gh/briochemc/OceanGrids.jl/branch/master/graph/badge.svg" />
