@@ -2,7 +2,20 @@ module OceanGrids
 
 using Unitful
 
-struct OceanGrid
+abstract type OceanGrid end
+
+"""
+    OceanRectilinearGrid
+
+Ocean rectilinear grid.
+Here I use the slightly abuse the term rectilinear, 
+because the grid supposedly represents layers around the (curved) globe.
+Here "rectilinear" means that the grid is defined entirely by just its
+`lat`, `lon`, `depth`, `δlat`, `δlon`, and `δdepth` vectors.
+For example, the Ocean Circulation Inverse Model (OCIM) version 1 
+grid is rectilinear in that sense.
+"""
+struct OceanRectilinearGrid <: OceanGrid
     lat          # °
     lon          # °
     depth        # m
@@ -26,7 +39,20 @@ struct OceanGrid
     nboxes
 end
 
-struct OceanCurvilinearGrid
+"""
+    OceanCurvilinearGrid
+
+Ocean curvilinear grid.
+The grid is curvilinear if it can be accessed using Cartesian Indices.
+I.e., it maps to a rectilinear grid.
+This type of grid typically cannot be inferred from only
+`lat`, `lon`, `depth`, `δlat`, `δlon`, and `δdepth` vectors.
+Instead, the full 3-dimensional arrays
+`lat_3D`, `lon_3D`, `D`epth_3D`, `δx_3D`, `δy_3D`, and `δz_3D`
+are required.
+For exaample, the displaced-pole grid of the POP model is curcvilinear.
+"""
+struct OceanCurvilinearGrid <: OceanGrid
     lat_3D       # °
     lon_3D       # °
     depth_3D     # m
@@ -45,6 +71,13 @@ end
 
 const TU = AbstractArray{<:Quantity}
 
+"""
+    OceanGrid(elon::T, elat::U, edepth::V; R=upreferred(6371.0u"km")) where {T<:TU, U<:TU, V<:TU}
+
+Returns an `OceanRectilinearGrid` with boxes whose edges are defined by the
+`elon`, `elat`, and `edepth` vectors.
+The globe radius can be changed with the keyword `R` (default value 6371 km)
+"""
 function OceanGrid(elon::T, elat::U, edepth::V; R=upreferred(6371.0u"km")) where {T<:TU, U<:TU, V<:TU}
     nlon, nlat, ndepth = length(elon) - 1, length(elat) - 1, length(edepth) - 1
     nboxes = nlon * nlat * ndepth
@@ -58,6 +91,7 @@ function OceanGrid(elon::T, elat::U, edepth::V; R=upreferred(6371.0u"km")) where
     depth_top = cumsum(δdepth) - δdepth
     depth_top_3D = repeat(reshape(depth_top, (1,1,ndepth)), outer=(nlat,nlon,1))
     # lat objects
+    R = R |> u"m" # convert to meters
     lat_3D = repeat(reshape(lat, (nlat,1,1)), outer=(1,nlon,ndepth))
     δy = R * δlat ./ 360u"°"
     δy_3D = repeat(reshape(δy, (nlat,1,1)), outer=(1,nlon,ndepth))
@@ -69,7 +103,7 @@ function OceanGrid(elon::T, elat::U, edepth::V; R=upreferred(6371.0u"km")) where
     δx_3D = A_3D ./ δy_3D
     # volume
     volume_3D = δx_3D .* δy_3D .* δz_3D
-    return OceanGrid(
+    return OceanRectilinearGrid(
                      lat,          # °
                      lon,          # °
                      depth,        # m
@@ -97,7 +131,11 @@ end
 edges_to_centers(x::Vector) = 0.5 * (x[1:end-1] + x[2:end])
 edges_to_centers(x::AbstractRange) = x[1:end-1] .+ 0.5step(x)
 
+"""
+    OceanGrid(nlat::Int, nlon::Int, ndepth::Int)
 
+Returns a regularly spaced `OceanRectilinearGrid` with size `nlat`, `nlon`, and `ndepth`.
+"""
 function OceanGrid(nlat::Int, nlon::Int, ndepth::Int)
     elat = range(-90,90,length=nlat+1) * u"°"
     elon = range(0,360,length=nlon+1) * u"°"
@@ -109,8 +147,13 @@ function Base.show(io::IO, g::OceanGrid)
     println("OceanGrid of size $(g.nlat)×$(g.nlon)×$(g.ndepth) (lat×lon×depth)")
 end
 
-volume_3D(g::OceanGrid) = g.volume_3D
+"""
+    OceanGridBox
 
+Ocean grid box.
+Each grid can be looped over, where the `OceanGridBox` are the elements of the grid.
+This useful to investigate specific boxes in the grid.
+"""
 struct OceanGridBox
     I
     lat          # °
@@ -127,6 +170,13 @@ struct OceanGridBox
     A            # m²
 end
 
+"""
+    box(g::OceanGrid, i, j, k)
+
+Accesses the individual box of `g::OceanGrid` at index `(i,j,k)`.
+Each grid can be looped over, where the `OceanGridBox` are the elements of the grid.
+This useful to investigate specific boxes in the grid.
+"""
 function box(g::OceanGrid, i, j, k)
     return OceanGridBox(
                         CartesianIndex(i,j,k),
@@ -145,11 +195,23 @@ function box(g::OceanGrid, i, j, k)
                        )
 end
 
+"""
+    box(g::OceanGrid, I)
+
+Accesses the individual box of `g::OceanGrid` at index `I`.
+Each grid can be looped over, where the `OceanGridBox` are the elements of the grid.
+This useful to investigate specific boxes in the grid.
+"""
 function box(g::OceanGrid, I)
     i,j,k = CartesianIndices((g.nlat,g.nlon,g.ndepth))[I].I
     return box(g::OceanGrid, i, j, k)
 end
 
+"""
+    Base.size(g::OceanGrid)
+
+Size of the grid.
+"""
 Base.size(g::OceanGrid) = g.nlat, g.nlon, g.ndepth
 
 function Base.show(io::IO, b::OceanGridBox)
@@ -162,10 +224,6 @@ end
 area(b::OceanGridBox) = b.A |> u"km^2"
 volume(b::OceanGridBox) = b.volume
 
-function human(q::Quantity)
-    v = log10(ustrip(q))
-end
-
 Base.iterate(g::OceanGrid) = box(g::OceanGrid, 1), 1
 function Base.iterate(g::OceanGrid, i)
     if i == g.nboxes
@@ -175,6 +233,6 @@ function Base.iterate(g::OceanGrid, i)
     end
 end
 
-export OceanGrid, OceanCurvilinearGrid, volume_3D, box
+export OceanGrid, OceanCurvilinearGrid, OceanRectilinearGrid, box, OceanGridBox
 
 end # module
