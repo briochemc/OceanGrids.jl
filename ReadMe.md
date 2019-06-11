@@ -1,3 +1,7 @@
+<a href="https://gist.github.com/briochemc/10e891bdb7da49fc4bf5467a5876434f">
+  <img src="https://user-images.githubusercontent.com/4486578/59238897-0a004c80-8c43-11e9-861c-5fe00069af92.png", align="right", width="50%">
+</a>
+
 # OceanGrids
 
 <p>
