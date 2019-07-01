@@ -214,6 +214,13 @@ Size of the grid.
 """
 Base.size(g::OceanGrid) = g.nlat, g.nlon, g.ndepth
 
+"""
+    Base.length(g::OceanGrid)
+
+Size of the grid.
+"""
+Base.length(g::OceanGrid) = g.nlat * g.nlon * g.ndepth
+
 function Base.show(io::IO, b::OceanGridBox)
     println("OceanGridBox at $(b.I):")
     println("  location: $(b.lat)N, $(b.lon)E")
