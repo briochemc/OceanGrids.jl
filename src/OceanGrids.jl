@@ -180,7 +180,7 @@ function OceanGrid(nlat::Int, nlon::Int, ndepth::Int)
 end
 
 function Base.show(io::IO, g::OceanGrid)
-    print("OceanGrid of size $(g.nlat)×$(g.nlon)×$(g.ndepth) (lat×lon×depth)")
+    println("OceanGrid of size $(g.nlat)×$(g.nlon)×$(g.ndepth) (lat×lon×depth)")
 end
 
 """
@@ -276,9 +276,8 @@ function Base.iterate(g::OceanGrid, i)
     end
 end
 
-Base.isequal(g₁::OceanRectilinearGrid, g₂::OceanRectilinearGrid) = prod([getfield(g₁,f) == getfield(g₂,f) for f in fieldnames(OceanRectilinearGrid)])
-Base.isequal(g₁::OceanCurvilinearGrid, g₂::OceanCurvilinearGrid) = prod([getfield(g₁,f) == getfield(g₂,f) for f in fieldnames(OceanCurvilinearGrid)])
-Base.:(==)(g₁::OceanGrid, g₂::OceanGrid) = isequal(g₁, g₂)
+Base.isequal(g₁::T, g₂::T) where {T<:OceanGrid} = prod([getfield(g₁,f) == getfield(g₂,f) for f in fieldnames(T)])
+Base.:(==)(g₁::T, g₂::T) where {T<:OceanGrid} = isequal(g₁, g₂)
 
 export OceanGrid, OceanCurvilinearGrid, OceanRectilinearGrid, box, OceanGridBox
 
