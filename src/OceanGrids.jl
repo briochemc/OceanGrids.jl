@@ -156,7 +156,7 @@ function OceanGrid(elon::T1, elat::T1, edepth::T1; R=6371.0u"km")
     return OceanGrid(elon * u"°", elat * u"°", edepth * u"m"; R=R)
 end
 function OceanGrid(elon::TU, elat::T1, edepth::T1; R=6371.0u"km")
-    @warn "`elat` and `edepth` provided without units — assuminees and meters"
+    @warn "`elat` and `edepth` provided without units — assuming and meters"
     return OceanGrid(elon, elat * u"°", edepth * u"m"; R=R)
 end
 function OceanGrid(elon::T1, elat::TU, edepth::T1; R=6371.0u"km")
@@ -243,6 +243,8 @@ function box(g::OceanGrid, I)
     return box(g::OceanGrid, i, j, k)
 end
 
+Base.getindex(g::OceanGrid, I) = box(g,I)
+
 """
     Base.size(g::OceanGrid)
 
@@ -259,10 +261,13 @@ Base.length(g::OceanGrid) = g.nlat * g.nlon * g.ndepth
 
 function Base.show(io::IO, b::OceanGridBox)
     println("OceanGridBox at $(b.I):")
-    println("  location: $(b.lat)N, $(b.lon)E")
-    println("  depth: $(b.depth)")
-    println("  size: $(b.δx |> u"km") × $(b.δy |> u"km") × $(b.δz) (δx × δy × δz)")
+    println("  location: $(round(b.lat,digits=1))N, $(round(b.lon,digits=1))E")
+    println("  depth: $(round(b.depth,digits=1))")
+    println("  size: $(round(b.δx |> u"km",digits=1)) × $(round(b.δy |> u"km",digits=1)) × $(round(b.δz,digits=1)) (δx × δy × δz)")
 end
+
+Base.round(q::Quantity; digits=0) = round(q |> ustrip, digits=digits) * unit(q)
+
 
 area(b::OceanGridBox) = b.A |> u"km^2"
 volume(b::OceanGridBox) = b.volume
