@@ -80,7 +80,7 @@ const T1 = AbstractArray{<:Number}
 Returns an `OceanRectilinearGrid` with boxes whose edges are defined by the
 `elon`, `elat`, and `edepth` vectors.
 The globe radius can be changed with the keyword `R` (default value 6371 km)
-The wet3D is true everywhere.
+The 3D array of wet boxes, `wet3D` is true everywhere by default.
 """
 function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
     unitful_data, unitless_data = generate_grid_data_no_wet3D(elon, elat, edepth, R)
