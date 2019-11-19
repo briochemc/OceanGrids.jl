@@ -80,10 +80,27 @@ const T1 = AbstractArray{<:Number}
 Returns an `OceanRectilinearGrid` with boxes whose edges are defined by the
 `elon`, `elat`, and `edepth` vectors.
 The globe radius can be changed with the keyword `R` (default value 6371 km)
-The wet3D is true everywhere
+The wet3D is true everywhere.
 """
 function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
-    # convert to fixed degrees and meters
+    unitful_data, unitless_data = generate_grid_data_no_wet3D(elon, elat, edepth, R)
+    # 
+    nlat, nlon, ndepth = unitless_data[[2,1,3]]
+    wet3D = trues(nlat, nlon, ndepth)
+    return OceanRectilinearGrid(unitful_data..., wet3D, unitless_data...)
+end
+
+"""
+    OceanGrid(elon::T, elat::U, edepth::V, wet3D::BitArray; R=6371.0u"km")
+
+Same as `OceanGrid(elon, elat, edepth; R)` but with specified `wet3D`.
+"""
+function OceanGrid(elon::TU, elat::TU, edepth::TU, wet3D::BitArray; R=6371.0u"km")
+    unitful_data, unitless_data = generate_grid_data_no_wet3D(elon, elat, edepth, R)
+    return OceanRectilinearGrid(unitful_data..., wet3D, unitless_data...)
+end
+
+function generate_grid_data_no_wet3D(elon::TU, elat::TU, edepth::TU, R)
     R = R |> u"m"
     edepth = edepth .|> u"m"
     elat = elat .|> u"°"
@@ -112,32 +129,10 @@ function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
     δx_3D = A_3D ./ δy_3D
     # volume
     volume_3D = δx_3D .* δy_3D .* δz_3D
-    #
-    wet3D = trues(nlat, nlon, ndepth)
-    return OceanRectilinearGrid(
-                     lat,          # °
-                     lon,          # °
-                     depth,        # m
-                     δlat,         # °
-                     δlon,         # °
-                     δdepth,       # m
-                     lat_3D,       # °
-                     lon_3D,       # °
-                     depth_3D,     # m
-                     δy,           # m
-                     δx_3D,        # m
-                     δy_3D,        # m
-                     δz_3D,        # m
-                     volume_3D,    # m³
-                     depth_top,    # m
-                     depth_top_3D, # m
-                     A_2D,         # m²
-                     wet3D,
-                     nlon,
-                     nlat,
-                     ndepth,
-                     nboxes
-                    )
+    unitful_data = (lat, lon, depth, δlat, δlon, δdepth, lat_3D, lon_3D, depth_3D,
+                    δy, δx_3D, δy_3D, δz_3D, volume_3D, depth_top, depth_top_3D, A_2D)
+    unitless_data = (nlon, nlat, ndepth, nboxes)
+    return unitful_data, unitless_data
 end
 
 # Convert units in case not provided
