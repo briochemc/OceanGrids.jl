@@ -33,6 +33,7 @@ struct OceanRectilinearGrid <: OceanGrid
     depth_top    # m
     depth_top_3D # m
     A_2D         # m²
+    wet3D::BitArray
     nlon
     nlat
     ndepth
@@ -63,6 +64,7 @@ struct OceanCurvilinearGrid <: OceanGrid
     depth_top    # m
     depth_top_3D # m
     A_2D         # m²
+    wet3D::BitArray
     nlon
     nlat
     ndepth
@@ -78,6 +80,7 @@ const T1 = AbstractArray{<:Number}
 Returns an `OceanRectilinearGrid` with boxes whose edges are defined by the
 `elon`, `elat`, and `edepth` vectors.
 The globe radius can be changed with the keyword `R` (default value 6371 km)
+The wet3D is true everywhere
 """
 function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
     # convert to fixed degrees and meters
@@ -109,6 +112,8 @@ function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
     δx_3D = A_3D ./ δy_3D
     # volume
     volume_3D = δx_3D .* δy_3D .* δz_3D
+    #
+    wet3D = trues(nlat, nlon, ndepth)
     return OceanRectilinearGrid(
                      lat,          # °
                      lon,          # °
@@ -127,6 +132,7 @@ function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
                      depth_top,    # m
                      depth_top_3D, # m
                      A_2D,         # m²
+                     wet3D,
                      nlon,
                      nlat,
                      ndepth,
@@ -204,6 +210,7 @@ struct OceanGridBox
     volume       # m³
     depth_top    # m
     A            # m²
+    iswet::Bool
 end
 
 """
@@ -227,7 +234,8 @@ function box(g::OceanGrid, i, j, k)
                         g.δz_3D[i,j,k],
                         g.volume_3D[i,j,k],
                         g.depth_top[k],
-                        g.A_2D[i,j]
+                        g.A_2D[i,j],
+                        g.wet3D[i,j,k]
                        )
 end
 
@@ -260,11 +268,13 @@ Size of the grid.
 Base.length(g::OceanGrid) = g.nlat * g.nlon * g.ndepth
 
 function Base.show(io::IO, b::OceanGridBox)
-    println("OceanGridBox at $(b.I):")
+    println("$(wet_print(b.iswet)) OceanGridBox at $(b.I):")
     println("  location: $(round(b.lat,digits=1))N, $(round(b.lon,digits=1))E")
     println("  depth: $(round(b.depth,digits=1))")
     println("  size: $(round(b.δx |> u"km",digits=1)) × $(round(b.δy |> u"km",digits=1)) × $(round(b.δz,digits=1)) (δx × δy × δz)")
 end
+
+wet_print(iswet) = iswet ? "Wet" : "Dry"
 
 Base.round(q::Quantity; digits=0) = round(q |> ustrip, digits=digits) * unit(q)
 
