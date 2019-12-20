@@ -291,4 +291,42 @@ Base.:(==)(g₁::T, g₂::T) where {T<:OceanGrid} = isequal(g₁, g₂)
 
 export OceanGrid, OceanCurvilinearGrid, OceanRectilinearGrid, box, OceanGridBox
 
+"""
+    iswet(grid)
+
+Returns the 3D BitArray of wet boxes of the grid.
+"""
+iswet(g::T) where {T<:OceanGrid} = g.wet3D
+export iswet
+
+"""
+    latvec(grid)
+
+Returns the vector (wet points) of latitudes (units stripped).
+"""
+latvec(g::T) where {T<:OceanGrid} = ustrip.(g.lat_3D[iswet(g)])
+
+"""
+    lonvec(grid)
+
+Returns the vector (wet points) of longitudes (units stripped).
+"""
+lonvec(g::T) where {T<:OceanGrid} = ustrip.(g.lon_3D[iswet(g)])
+
+"""
+    depthvec(grid)
+
+Returns the vector (wet points) of depths (units stripped).
+"""
+depthvec(g::T) where {T<:OceanGrid} = ustrip.(g.depth_3D[iswet(g)])
+
+"""
+    latlondepthvecs(g)
+
+Returns `latvec(g), lonvec(g), depthvec(g)`.
+"""
+latlondepthvecs(g::T) where {T<:OceanGrid} = latvec(g), lonvec(g), depthvec(g)
+
+export latvec, lonvec, depthvec, latlondepthvecs
+
 end # module

@@ -5,22 +5,19 @@
 # OceanGrids
 
 <p>
-  <img src="https://img.shields.io/badge/stability-experimental-orange.svg">
-</p>
-<p>
   <a href="https://travis-ci.com/briochemc/OceanGrids.jl">
-    <img alt="Build Status" src="https://travis-ci.com/briochemc/OceanGrids.jl.svg?branch=master">
+    <img alt="Build Status" src="https://img.shields.io/travis/com/briochemc/OceanGrids.jl/master?label=OSX/Linux&logo=travis&logocolor=white&style=flat-square">
   </a>
-  <a href='https://coveralls.io/github/briochemc/OceanGrids.jl'>
-    <img src='https://coveralls.io/repos/github/briochemc/OceanGrids.jl/badge.svg' alt='Coverage Status' />
+  <a href="https://ci.appveyor.com/project/briochemc/OceanGrids-jl">
+    <img alt="Build Status" src="https://img.shields.io/appveyor/ci/briochemc/OceanGrids-jl/master?label=Windows&logo=appveyor&logoColor=white&style=flat-square">
   </a>
 </p>
 <p>
-  <a href="https://ci.appveyor.com/project/briochemc/OceanGrids-jl">
-    <img alt="Build Status" src="https://ci.appveyor.com/api/projects/status/6egisrrfgqnyu43n?svg=true">
+  <a href='https://coveralls.io/github/briochemc/OceanGrids.jl'>
+    <img src="https://img.shields.io/coveralls/github/briochemc/OceanGrids.jl/master?label=Coveralls&style=flat-square">
   </a>
   <a href="https://codecov.io/gh/briochemc/OceanGrids.jl">
-    <img src="https://codecov.io/gh/briochemc/OceanGrids.jl/branch/master/graph/badge.svg" />
+    <img src="https://img.shields.io/codecov/c/github/briochemc/OceanGrids.jl/master?label=Codecov&logo=codecov&logoColor=white&style=flat-square">
   </a>
 </p>
 

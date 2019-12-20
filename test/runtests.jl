@@ -45,5 +45,9 @@ end
         @testset "OceanGridBox" for box in grid
             @test box isa OceanGridBox
         end
+        @test iswet(grid) isa BitArray{3}
+        @test latvec(grid) isa Vector{Float64}
+        @test lonvec(grid) isa Vector{Float64}
+        @test depthvec(grid) isa Vector{Float64}
     end
 end
