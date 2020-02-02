@@ -1,6 +1,7 @@
 module OceanGrids
 
-using Unitful
+using Unitful, Interpolations
+using LinearAlgebra, SparseArrays
 
 abstract type OceanGrid end
 
@@ -88,7 +89,7 @@ function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
     nlat, nlon, ndepth = unitless_data[[2,1,3]]
     wet3D = trues(nlat, nlon, ndepth)
     return OceanRectilinearGrid(unitful_data..., wet3D, unitless_data...)
-end
+end 
 
 """
     OceanGrid(elon::T, elat::U, edepth::V, wet3D::BitArray; R=6371.0u"km")
@@ -149,11 +150,11 @@ function OceanGrid(elon::TU, elat::T1, edepth::TU; R=6371.0u"km")
     return OceanGrid(elon, elat * u"°", edepth; R=R)
 end
 function OceanGrid(elon::T1, elat::T1, edepth::TU; R=6371.0u"km")
-    @warn "`elat` and `elon` provided without units — assuming s"
+    @warn "`elat` and `elon` provided without units — assuming degrees"
     return OceanGrid(elon * u"°", elat * u"°", edepth; R=R)
 end
 function OceanGrid(elon::T1, elat::T1, edepth::T1; R=6371.0u"km")
-    @warn "`elat`, `elon`, and `edepth` provided without units ming degrees and meters"
+    @warn "`elat`, `elon`, and `edepth` provided without units — assuming degrees and meters"
     return OceanGrid(elon * u"°", elat * u"°", edepth * u"m"; R=R)
 end
 function OceanGrid(elon::TU, elat::T1, edepth::T1; R=6371.0u"km")
@@ -328,5 +329,270 @@ Returns `latvec(g), lonvec(g), depthvec(g)`.
 latlondepthvecs(g::T) where {T<:OceanGrid} = latvec(g), lonvec(g), depthvec(g)
 
 export latvec, lonvec, depthvec, latlondepthvecs
+
+#===================================
+1D Vector <-> 3D array conversions
+===================================#
+"""
+    rearrange_into_3Darray(x, wet3D::BitArray)
+
+Returns a 3D array of `x` rearranged to the `true` entries of `wet3D`.
+Entries where `wet3D` is `false` are filled with `NaN`s.
+"""
+function rearrange_into_3Darray(x, wet3D::BitArray)
+    iwet = findall(wet3D)
+    x3d = fill(NaN, size(wet3D))
+    x3d[iwet] .= x
+    return x3d
+end
+"""
+    rearrange_into_3Darray(x, grid)
+
+Returns a 3D array of `x` rearranged to the wet boxes of the grid.
+"""
+rearrange_into_3Darray(x, grid) = rearrange_into_3Darray(x, grid.wet3D)
+
+export rearrange_into_3Darray
+
+#============
+Interpolation
+============#
+"""
+    interpolate(x, g)
+
+Returns an "interpolation object" for fast interpolation.
+
+It must be queried within the range of the grid in longitude...
+"""
+function Interpolations.interpolate(x, g::T) where {T<:OceanGrid}
+    knots = (ustrip.(g.lat), periodic_longitude(ustrip.(g.lon)), ustrip.(g.depth))
+    A = periodic_longitude(rearrange_into_3Darray(x, g))
+    itp = interpolate(knots, A, Gridded(Constant()))
+    return extrapolate(itp, (Flat(), Periodic(), Flat())) # extrapolate periodically
+end
+function Interpolations.interpolate(x, g::OceanGrid, lat, lon, depth; itp=interpolate(x,g))
+    return itp(ustrip(lat), ustrip.(lon), ustrip.(depth))
+end
+function Interpolations.interpolate(x, g::OceanGrid, lats::Vector, lons::Vector, depths::Vector; itp=interpolate(x,g)) 
+    return [itp(y,x,z) for (y,x,z) in zip(ustrip.(lats), ustrip.(lons), ustrip.(depths))]
+end
+function Interpolations.interpolate(x, g::OceanGrid, MD; itp=interpolate(x,g))
+    return interpolate(x, g, MD.lat, MD.lon, MD.depth; itp=itp)
+end
+export interpolate
+
+"""
+    iswet(g, lat, lon, depth)
+    iswet(g, lats, lons, depths)
+    iswet(g, metadata)
+
+Returns the indices of the provided locations that are "in" a wet box of `g`.
+
+Technically, this uses a nearest neighbour interpolation algorithm, so the bounding boxes
+will not work perfectly.
+If AIBECS will solely rely on this nearest neighbour interpolation, 
+then it might be a good idea to replace Interpolations.jl with NearestNeighbors.jl.
+"""
+function iswet(g, args...; itp=interpolate(1:count(iswet(g)),g))
+    J = interpolate(1:count(iswet(g)), g, args...; itp=itp)
+    return findall((!isnan).(J))
+end
+"""
+    interpolationmatrix(g, lats, lons, depths)
+    interpolationmatrix(g, metadata)
+
+Returns the sparse matrix `M` such that `M*x` is the model vector `x` interpolated
+onto the provided locations/metadata.
+
+Technically, this requires a linear interpolation, in the sense that
+`interpolation(x) = M * x` for some `M`, which seems to require a nearest neighbor
+interpolation.
+If AIBECS will solely rely on this nearest neighbour interpolation, 
+then it might be a good idea to replace Interpolations.jl with NearestNeighbors.jl.
+Also, the few observations that lie in model land (instead of water) are discarded.
+
+In the future, a more generic approach will use an sparse-aware AD for any type of
+interpolation, and use an interpolation that somehow does not discard observations
+made at locations not inside an ocean grid cell.
+"""
+function interpolationmatrix(g, args...; itp=interpolate(1:count(iswet(g)),g))
+    J = interpolate(1:count(iswet(g)), g, args...; itp=itp)
+    iwet = findall((!isnan).(J))
+    J = Int.(J[iwet])
+    I = collect(1:length(iwet))
+    return sparse(I, J, true, length(I), count(iswet(g)))
+end
+export interpolationmatrix
+
+
+#=
+    lats = range(ustrip(grd.lat[1]), ustrip(grd.lat[end]), length=length(grd.lat))
+    lons = range(ustrip(grd.lon[1]), ustrip(grd.lon[1])+360, length=length(grd.lon)+1)
+    stp = Interpolations.scale(itp, lats, lons, 1:ndepths) # re-scale to the actual domain
+    etp = extrapolate(stp, (Line(), Periodic(), Line())) # periodic longitude
+
+
+    xs = range(0, 2π, length=11)
+    ys = range(-π/2, π/2, length=6)
+    A = f.(xs,ys')
+    itp = interpolate(A, BSpline(Linear())) # interpolate linearly between the data points
+    stp = scale(itp, xs, ys) # re-scale to the actual domain
+    etp = extrapolate(stp, (Periodic(), Throw())) # extrapolate periodically
+=#
+
+periodic_longitude(x3D::Array{T,3}) where T = view(x3D,:,[1:size(x3D,2); 1],:)
+periodic_longitude(v::Vector{T}) where T = [v; v[1]+360]
+
+#===================================
+Off-diaongal matrices
+===================================#
+
+"""
+    buildIbelow(wet3D, iwet)
+
+Builds the shifted-diagonal sparse matrix of the indices of below neighbours.
+
+Ibelow[i,j] = 1 if the box represented by the linear index i
+lies directly below the box represented by the linear index j.
+"""
+function buildIbelow(wet3D, iwet)
+    nlat, nlon, ndepth = size(wet3D)
+    n = nlon * nlat * (ndepth + 1)
+    In = sparse(I, n, n)
+    idx = zeros(Int, nlat, nlon, ndepth + 1)
+    idx[:] = 1:n
+    idx .= idx[:, :, [2:ndepth + 1; 1]]      # downward shift
+    return In[idx[:], :][iwet, iwet]
+end
+"""
+    buildIbelow(grid)
+
+Builds the shifted-diagonal sparse matrix of the indices of below neighbours for `grid`.
+See `buildIbelow(wet3D, iwet)`.
+"""
+buildIbelow(grid) = buildIbelow(grid.wet3D, indices_of_wet_boxes(grid))
+export buildIbelow
+
+"""
+    buildIabove(wet3D, iwet)
+
+Builds the shifted-diagonal sparse matrix of the indices of above neighbours.
+
+Iabove[i,j] = 1 if the box represented by the linear index i
+lies directly above the box represented by the linear index j.
+"""
+buildIabove(wet3D, iwet) = copy(transpose(buildIbelow(wet3D, iwet)))
+"""
+    buildIabove(grid)
+
+Builds the shifted-diagonal sparse matrix of the indices of above neighbours for `grid`.
+See `buildIabove(wet3D, iwet)`.
+"""
+buildIabove(grid) = copy(transpose(buildIbelow(grid)))
+export buildIabove
+
+
+
+#===================================
+Functions returning useful arrays,
+vectors, and constants
+===================================#
+
+"""
+    array_of_volumes(grid)
+
+Returns the 3D array of volumes of grid boxes.
+"""
+array_of_volumes(grid) = grid.volume_3D
+export array_of_volumes
+
+
+"""
+    indices_of_wet_boxes(wet3D::BitArray)
+
+Returns the vector of the indices of wet grid boxes.
+"""
+indices_of_wet_boxes(wet3D::BitArray) = findall(vec(wet3D))
+"""
+    indices_of_wet_boxes(grid)
+
+Returns the vector of the indices of wet grid boxes.
+"""
+indices_of_wet_boxes(grid) = indices_of_wet_boxes(grid.wet3D)
+export indices_of_wet_boxes
+
+"""
+    number_of_wet_boxes(wet3D::BitArray)
+
+Returns the number of wet grid boxes.
+"""
+number_of_wet_boxes(wet3D::BitArray) = length(indices_of_wet_boxes(wet3D))
+"""
+    number_of_wet_boxes(grid)
+
+Returns the number of wet grid boxes.
+"""
+number_of_wet_boxes(grid) = number_of_wet_boxes(grid.wet3D)
+export number_of_wet_boxes
+
+"""
+    vector_of_volumes(grid)
+
+Returns the vector of volumes of wet boxes.
+"""
+vector_of_volumes(grid) = array_of_volumes(grid)[indices_of_wet_boxes(grid.wet3D)]
+export vector_of_volumes
+
+"""
+    vector_of_depths(grid)
+
+Returns the vector of depths of the center of wet boxes.
+"""
+vector_of_depths(grid) = grid.depth_3D[indices_of_wet_boxes(grid.wet3D)]
+export vector_of_depths
+
+"""
+    vector_of_depths(grid)
+
+Returns the vector of depths of the top of wet boxes.
+"""
+vector_of_top_depths(grid) = grid.depth_top_3D[indices_of_wet_boxes(grid.wet3D)]
+export vector_of_top_depths
+
+#===================================
+Functions return weighted norms
+===================================#
+
+"""
+    weighted_norm²(x, w)
+
+Returns the square of the weighted norm of `x` using weights `w`.
+"""
+weighted_norm²(x, w) = transpose(x) * Diagonal(w) * x
+
+"""
+    weighted_norm(x, v)
+
+Returns the weighted norm of `x` using weights `w`.
+"""
+weighted_norm(x, w) = sqrt(weighted_norm²(x, w))
+
+"""
+    weighted_mean(x, w)
+
+Returns the weighted mean of `x` using weights `w`.
+"""
+weighted_mean(x, w) = transpose(w) * x / sum(w)
+
+"""
+    vmean(x, w, I)
+
+Returns the weighted mean of `x` using weights `w`, but only over indices `I`.
+This is useful to get the observed mean.
+(Because there are some grid boxes without observations.)
+"""
+weighted_mean(x, w, I) = transpose(w[I]) * x[I] / sum(w[I])
+export weighted_norm²
+
 
 end # module
