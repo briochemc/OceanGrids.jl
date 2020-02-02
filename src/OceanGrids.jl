@@ -9,11 +9,11 @@ abstract type OceanGrid end
     OceanRectilinearGrid
 
 Ocean rectilinear grid.
-Here I use the slightly abuse the term rectilinear, 
+Here I use the slightly abuse the term rectilinear,
 because the grid supposedly represents layers around the (curved) globe.
 Here "rectilinear" means that the grid is defined entirely by just its
 `lat`, `lon`, `depth`, `δlat`, `δlon`, and `δdepth` vectors.
-For example, the Ocean Circulation Inverse Model (OCIM) version 1 
+For example, the Ocean Circulation Inverse Model (OCIM) version 1
 grid is rectilinear in that sense.
 """
 struct OceanRectilinearGrid <: OceanGrid
@@ -85,11 +85,11 @@ The 3D array of wet boxes, `wet3D` is true everywhere by default.
 """
 function OceanGrid(elon::TU, elat::TU, edepth::TU; R=6371.0u"km")
     unitful_data, unitless_data = generate_grid_data_no_wet3D(elon, elat, edepth, R)
-    # 
+    #
     nlat, nlon, ndepth = unitless_data[[2,1,3]]
     wet3D = trues(nlat, nlon, ndepth)
     return OceanRectilinearGrid(unitful_data..., wet3D, unitless_data...)
-end 
+end
 
 """
     OceanGrid(elon::T, elat::U, edepth::V, wet3D::BitArray; R=6371.0u"km")
@@ -373,7 +373,7 @@ end
 function Interpolations.interpolate(x, g::OceanGrid, lat, lon, depth; itp=interpolate(x,g))
     return itp(ustrip(lat), ustrip.(lon), ustrip.(depth))
 end
-function Interpolations.interpolate(x, g::OceanGrid, lats::Vector, lons::Vector, depths::Vector; itp=interpolate(x,g)) 
+function Interpolations.interpolate(x, g::OceanGrid, lats::Vector, lons::Vector, depths::Vector; itp=interpolate(x,g))
     return [itp(y,x,z) for (y,x,z) in zip(ustrip.(lats), ustrip.(lons), ustrip.(depths))]
 end
 function Interpolations.interpolate(x, g::OceanGrid, MD; itp=interpolate(x,g))
@@ -390,7 +390,7 @@ Returns the indices of the provided locations that are "in" a wet box of `g`.
 
 Technically, this uses a nearest neighbour interpolation algorithm, so the bounding boxes
 will not work perfectly.
-If AIBECS will solely rely on this nearest neighbour interpolation, 
+If AIBECS will solely rely on this nearest neighbour interpolation,
 then it might be a good idea to replace Interpolations.jl with NearestNeighbors.jl.
 """
 function iswet(g, args...; itp=interpolate(1:count(iswet(g)),g))
@@ -407,7 +407,7 @@ onto the provided locations/metadata.
 Technically, this requires a linear interpolation, in the sense that
 `interpolation(x) = M * x` for some `M`, which seems to require a nearest neighbor
 interpolation.
-If AIBECS will solely rely on this nearest neighbour interpolation, 
+If AIBECS will solely rely on this nearest neighbour interpolation,
 then it might be a good idea to replace Interpolations.jl with NearestNeighbors.jl.
 Also, the few observations that lie in model land (instead of water) are discarded.
 
