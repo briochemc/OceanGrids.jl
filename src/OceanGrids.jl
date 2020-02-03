@@ -376,9 +376,13 @@ end
 function Interpolations.interpolate(x, g::OceanGrid, lats::Vector, lons::Vector, depths::Vector; itp=interpolate(x,g))
     return [itp(y,x,z) for (y,x,z) in zip(ustrip.(lats), ustrip.(lons), ustrip.(depths))]
 end
-function Interpolations.interpolate(x, g::OceanGrid, MD; itp=interpolate(x,g))
+function Interpolations.interpolate(x, g::OceanGrid, MD::NamedTuple; itp=interpolate(x,g))
     return interpolate(x, g, MD.lat, MD.lon, MD.depth; itp=itp)
 end
+function Interpolations.interpolate(x, g::OceanGrid, obs; itp=interpolate(x,g))
+    return interpolate(x, g, obs.metadata; itp=itp)
+end
+Interpolations.interpolate(x, g::OceanGrid, ::Missing; itp=nothing) = missing
 export interpolate
 
 """
@@ -397,6 +401,7 @@ function iswet(g, args...; itp=interpolate(1:count(iswet(g)),g))
     J = interpolate(1:count(iswet(g)), g, args...; itp=itp)
     return findall((!isnan).(J))
 end
+
 """
     interpolationmatrix(g, lats, lons, depths)
     interpolationmatrix(g, metadata)
@@ -422,6 +427,7 @@ function interpolationmatrix(g, args...; itp=interpolate(1:count(iswet(g)),g))
     I = collect(1:length(iwet))
     return sparse(I, J, true, length(I), count(iswet(g)))
 end
+interpolationmatrix(g, ::Missing; itp=nothing) = missing
 export interpolationmatrix
 
 
