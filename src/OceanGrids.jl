@@ -401,6 +401,7 @@ function iswet(g, args...; itp=interpolate(1:count(iswet(g)),g))
     J = interpolate(1:count(iswet(g)), g, args...; itp=itp)
     return findall((!isnan).(J))
 end
+iswet(g, ::Missing; itp=nothing) = missing
 
 """
     interpolationmatrix(g, lats, lons, depths)
