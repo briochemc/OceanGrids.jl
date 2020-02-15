@@ -339,9 +339,9 @@ export latvec, lonvec, depthvec, latlondepthvecs
 Returns a 3D array of `x` rearranged to the `true` entries of `wet3D`.
 Entries where `wet3D` is `false` are filled with `NaN`s.
 """
-function rearrange_into_3Darray(x, wet3D::BitArray)
+function rearrange_into_3Darray(x::Vector{T}, wet3D::BitArray) where T
     iwet = findall(wet3D)
-    x3d = fill(NaN, size(wet3D))
+    x3d = fill(NaN * unit(T), size(wet3D))
     x3d[iwet] .= x
     return x3d
 end
