@@ -355,7 +355,7 @@ export latvec, lonvec, depthvec, latlondepthvecs, topdepthvec, bottomdepthvec
 Returns a 3D array of `x` rearranged to the `true` entries of `wet3D`.
 Entries where `wet3D` is `false` are filled with `NaN`s.
 """
-function rearrange_into_3Darray(x::Vector{T}, wet3D::BitArray) where T
+function rearrange_into_3Darray(x::AbstractVector{T}, wet3D::BitArray) where T
     iwet = findall(wet3D)
     x3d = fill(NaN * unit(T), size(wet3D))
     x3d[iwet] .= x
@@ -366,7 +366,7 @@ end
 
 Returns a 3D array of `x` rearranged to the wet boxes of the grid.
 """
-rearrange_into_3Darray(x, grid) = rearrange_into_3Darray(x, grid.wet3D)
+rearrange_into_3Darray(x::AbstractVector{T}, grid) where T = rearrange_into_3Darray(x, grid.wet3D)
 
 export rearrange_into_3Darray
 
