@@ -322,13 +322,29 @@ Returns the vector (wet points) of depths (units stripped).
 depthvec(g::T) where {T<:OceanGrid} = ustrip.(g.depth_3D[iswet(g)])
 
 """
+    topdepthvec(grid)
+
+Returns the vector (wet points) of top depths (units stripped).
+(top depths = depth of the top of the box.)
+"""
+topdepthvec(g::T) where {T<:OceanGrid} = ustrip.(g.depth_top_3D[iswet(g)])
+
+"""
+    bottomdepthvec(grid)
+
+Returns the vector (wet points) of bottom depths (units stripped).
+(bottom depths = depth of the bottom of the box.)
+"""
+bottomdepthvec(g::T) where {T<:OceanGrid} = 2depthvec(g) - topdepthvec(g)
+
+"""
     latlondepthvecs(g)
 
 Returns `latvec(g), lonvec(g), depthvec(g)`.
 """
 latlondepthvecs(g::T) where {T<:OceanGrid} = latvec(g), lonvec(g), depthvec(g)
 
-export latvec, lonvec, depthvec, latlondepthvecs
+export latvec, lonvec, depthvec, latlondepthvecs, topdepthvec, bottomdepthvec
 
 #===================================
 1D Vector <-> 3D array conversions
@@ -559,12 +575,20 @@ vector_of_depths(grid) = grid.depth_3D[indices_of_wet_boxes(grid.wet3D)]
 export vector_of_depths
 
 """
-    vector_of_depths(grid)
+    vector_of_top_depths(grid)
 
 Returns the vector of depths of the top of wet boxes.
 """
 vector_of_top_depths(grid) = grid.depth_top_3D[indices_of_wet_boxes(grid.wet3D)]
 export vector_of_top_depths
+
+"""
+    vector_of_bottom_depths(grid)
+
+Returns the vector of depths of the bottom of wet boxes.
+"""
+vector_of_bottom_depths(grid) = 2vector_of_depths(grid) - vector_of_top_depths(grid)
+export vector_of_bottom_depths
 
 #===================================
 Functions return weighted norms
