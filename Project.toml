@@ -1,6 +1,6 @@
 name = "OceanGrids"
 uuid = "cfe838f4-859f-11e9-2ea1-df7d4e7c3537"
-authors = ["Benoit Pasquier <pasquieb@uci.edu>"]
+authors = ["Benoit Pasquier <briochemc@gmail.com>"]
 version = "0.1.12"
 
 [deps]
