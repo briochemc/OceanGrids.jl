@@ -355,12 +355,13 @@ finddepthindex(depths::Tuple, grd) = ((finddepthindex(d, grd) for d in depths)..
 convertdepth(depths::Tuple) = ((convertdepth(d) for d in depths)...,)
 # lon helper functions
 findlonindex(lon::Quantity, grd) = findmin(abs.(grd.lon .- lon))[2]
-convertlon(x::Real) = mod(x * u"°", 360u"°")
-convertlon(x::Quantity) = unit(x) == Unitful.° ? mod(x, 360u"°") : error("Not a valid lon")
+convertlon(x::Real) = mod(x * °, 360°)
+convertlon(x::Quantity) = unit(x) == ° ? mod(x, 360°) : error("Not a valid lon")
 # lat helper functions
 findlatindex(lat::Quantity, grd) = findmin(abs.(grd.lat .- lat))[2]
-convertlat(y::Real) = y * u"°"
-convertlat(y::Quantity) = unit(y) == Unitful.° ? y : error("Not a valid lat")
+convertlat(y::Real) = y * °
+convertlat(y::Quantity) = unit(y) == ° ? y : error("Not a valid lat")
+export convertlat, convertlon
 """
     HorizontalSlice(x, grd; depth)
 
@@ -457,10 +458,10 @@ for f in (:horizontal, :vertical, :meridional, :zonal, :total)
 end
 
 # Allow all the integral/average functions to work when `x` is supplied as a vector
-for f in (:∫dxdy,    :horizontalmean, :horizontalslice,
+for f in (:∫dxdy,    :horizontalmean,
           :∫dz,      :verticalmean,
-          :∫dy,      :meridionalmean, :meridionalslice,
-          :∫dx,      :zonalmean,      :zonalslice,
+          :∫dy,      :meridionalmean,
+          :∫dx,      :zonalmean,
           :∫dxdydz,  :totalmean)
     @eval begin
         $f(x::Vector, grd, mask=1; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd, rearrange_into_3Darray(mask, grd); kwargs...)
@@ -468,4 +469,69 @@ for f in (:∫dxdy,    :horizontalmean, :horizontalslice,
     end
 end
 
+
+
+#================
+Vertical sections
+================#
+
+# Functions extending 3D arrays and 1D longitudinal vectors
+# to be used by interpolation functions.
+# These assume that the longitude is in (0,360) and that
+# the longitude is stored in the 2nd dimension (lat,lon,depth)
+function lonextend(x3D::Array{T,N} where {T,N})
+    x3Dext = Array{eltype(x3D),3}(undef, (size(x3D) .+ (0,2,0))...)
+    x3Dext[:,2:end-1,:] .= x3D
+    x3Dext[:,1,:] .= x3D[:,end,:]
+    x3Dext[:,end,:] .= x3D[:,1,:]
+    return x3Dext
+end
+function lonextend(lon::Vector{T} where {T})
+    lonext = Vector{eltype(lon)}(undef, length(lon) + 2)
+    lonext[2:end-1] .= lon
+    lonext[1] = lon[end] - 360°
+    lonext[end] = lon[1] + 360°
+    return lonext
+end
+# TODO make the function below more generic and be capable of taking in other
+# representations than just OceanographyCruises.jl `CruiseTrack`
+"""
+    verticalsection(x3D, grd; ct=nothing)
+
+Returns a 2D array of the vertical section that follows the cruise track `ct`.
+This is made to work with the OceanographyCruises.jl package.
+"""
+function verticalsection(x3D, grd; ct=nothing)
+    isnothing(ct) && error("you must include the cruise track with `ct=...`")
+    # Create the interpolation object
+    x3D = lonextend(x3D)
+    knots = ustrip.((grd.lat, lonextend(grd.lon), grd.depth))
+    itp = interpolate(knots, x3D, Gridded(Constant()))
+    # convert lat and lon (TODO check if necessary)
+    ctlats = [convertlat(st.lat) for st in ct.stations]
+    ctlons = [convertlon(st.lon) for st in ct.stations]
+    # compute distance
+    distance = vcat(0.0u"km", cumsum(diff(ct)))
+    # remove identical stations (lat,lon)
+    idx = findall(diff(distance) .> 0u"km")
+    push!(idx, length(ct))
+    d = view(distance, idx)
+    y = view(ctlats, idx)
+    x = view(ctlons, idx)
+    return d, grd.depth, [itp(ustrip.((lat, lon, d))...) for d in grd.depth, (lat,lon) in zip(y, x)]
+end
+
+
+
+
+#=======================================================
+Allow functions to work when `x` is supplied as a vector
+=======================================================#
+
+for f in (:horizontalslice, :meridionalslice, :zonalslice, :verticalsection)
+    @eval begin
+        $f(x::Vector, grd; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd; kwargs...)
+        export $f
+    end
+end
 

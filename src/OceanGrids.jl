@@ -1,6 +1,8 @@
 module OceanGrids
 
-using Unitful, Interpolations
+using Unitful
+using Unitful: °
+using Interpolations
 using LinearAlgebra, SparseArrays
 
 abstract type OceanGrid end
@@ -104,8 +106,8 @@ end
 function generate_grid_data_no_wet3D(elon::TU, elat::TU, edepth::TU, R)
     R = R |> u"m"
     edepth = edepth .|> u"m"
-    elat = elat .|> u"°"
-    edon = elon .|> u"°"
+    elat = elat .|> °
+    edon = elon .|> °
     # δ objects
     nlon, nlat, ndepth = length(elon) - 1, length(elat) - 1, length(edepth) - 1
     nboxes = nlon * nlat * ndepth
@@ -120,7 +122,7 @@ function generate_grid_data_no_wet3D(elon::TU, elat::TU, edepth::TU, R)
     depth_top_3D = repeat(reshape(depth_top, (1,1,ndepth)), outer=(nlat,nlon,1))
     # lat objects
     lat_3D = repeat(reshape(lat, (nlat,1,1)), outer=(1,nlon,ndepth))
-    δy = R * δlat ./ 360u"°"
+    δy = R * δlat ./ 360°
     δy_3D = repeat(reshape(δy, (nlat,1,1)), outer=(1,nlon,ndepth))
     # lon objects
     lon_3D = repeat(reshape(lon, (1,nlon,1)), outer=(nlat,1,ndepth))
@@ -143,27 +145,27 @@ function OceanGrid(elon::TU, elat::TU, edepth::T1; R=6371.0u"km")
 end
 function OceanGrid(elon::T1, elat::TU, edepth::TU; R=6371.0u"km")
     @warn "`elon` provided without units — assuming degrees"
-    return OceanGrid(elon * u"°", elat, edepth; R=R)
+    return OceanGrid(elon * °, elat, edepth; R=R)
 end
 function OceanGrid(elon::TU, elat::T1, edepth::TU; R=6371.0u"km")
     @warn "`elat` provided without units — assuming degrees"
-    return OceanGrid(elon, elat * u"°", edepth; R=R)
+    return OceanGrid(elon, elat * °, edepth; R=R)
 end
 function OceanGrid(elon::T1, elat::T1, edepth::TU; R=6371.0u"km")
     @warn "`elat` and `elon` provided without units — assuming degrees"
-    return OceanGrid(elon * u"°", elat * u"°", edepth; R=R)
+    return OceanGrid(elon * °, elat * °, edepth; R=R)
 end
 function OceanGrid(elon::T1, elat::T1, edepth::T1; R=6371.0u"km")
     @warn "`elat`, `elon`, and `edepth` provided without units — assuming degrees and meters"
-    return OceanGrid(elon * u"°", elat * u"°", edepth * u"m"; R=R)
+    return OceanGrid(elon * °, elat * °, edepth * u"m"; R=R)
 end
 function OceanGrid(elon::TU, elat::T1, edepth::T1; R=6371.0u"km")
     @warn "`elat` and `edepth` provided without units — assuming and meters"
-    return OceanGrid(elon, elat * u"°", edepth * u"m"; R=R)
+    return OceanGrid(elon, elat * °, edepth * u"m"; R=R)
 end
 function OceanGrid(elon::T1, elat::TU, edepth::T1; R=6371.0u"km")
     @warn "`elon` and `edepth` provided without units — assuming degrees and meters"
-    return OceanGrid(elon * u"°", elat, edepth * u"m"; R=R)
+    return OceanGrid(elon * °, elat, edepth * u"m"; R=R)
 end
 
 edges_to_centers(x::Vector) = 0.5 * (x[1:end-1] + x[2:end])
@@ -175,8 +177,8 @@ edges_to_centers(x::AbstractRange) = x[1:end-1] .+ 0.5step(x)
 Returns a regularly spaced `OceanRectilinearGrid` with size `nlat`, `nlon`, and `ndepth`.
 """
 function OceanGrid(nlat::Int, nlon::Int, ndepth::Int)
-    elat = range(-90,90,length=nlat+1) * u"°"
-    elon = range(0,360,length=nlon+1) * u"°"
+    elat = range(-90,90,length=nlat+1) * °
+    elon = range(0,360,length=nlon+1) * °
     edepth = range(0,3682,length=ndepth+1) * u"m"
     return OceanGrid(elon, elat, edepth)
 end
