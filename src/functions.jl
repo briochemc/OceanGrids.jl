@@ -508,7 +508,7 @@ function verticalsection(x3D, grd; ct=nothing)
     isnothing(ct) && error("you must include the cruise track with `ct=...`")
     # Create the interpolation object
     x3D = lonextend(x3D)
-    knots = ustrip.((grd.lat, lonextend(grd.lon), grd.depth))
+    knots = ustrip.((grd.lat, cyclicallon(grd.lon), grd.depth))
     itp = interpolate(knots, x3D, Gridded(Constant()))
     # convert lat and lon (TODO check if necessary)
     ctlats = [convertlat(st.lat) for st in ct.stations]
