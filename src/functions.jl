@@ -82,7 +82,9 @@ Returns a 3D array of `x` rearranged to the wet boxes of the grid.
 """
 rearrange_into_3Darray(x, grid) = rearrange_into_3Darray(x, grid.wet3D)
 
-export rearrange_into_3Darray
+vectorize(x3D::Array{T,3} where T, grd) = x3D[iswet(grd)]
+
+export rearrange_into_3Darray, vectorize
 
 #============
 Interpolation
@@ -479,20 +481,21 @@ Vertical sections
 # to be used by interpolation functions.
 # These assume that the longitude is in (0,360) and that
 # the longitude is stored in the 2nd dimension (lat,lon,depth)
-function lonextend(x3D::Array{T,N} where {T,N})
-    x3Dext = Array{eltype(x3D),3}(undef, (size(x3D) .+ (0,2,0))...)
+function lonextend(x3D::Array{T,3}) where T
+    x3Dext = Array{T,3}(undef, (size(x3D) .+ (0,2,0))...)
     x3Dext[:,2:end-1,:] .= x3D
     x3Dext[:,1,:] .= x3D[:,end,:]
     x3Dext[:,end,:] .= x3D[:,1,:]
     return x3Dext
 end
-function lonextend(lon::Vector{T} where {T})
-    lonext = Vector{eltype(lon)}(undef, length(lon) + 2)
+function cyclicallon(lon::Vector{T}) where T<:Quantity
+    lonext = Vector{T}(undef, length(lon) + 2)
     lonext[2:end-1] .= lon
     lonext[1] = lon[end] - 360°
     lonext[end] = lon[1] + 360°
     return lonext
 end
+cyclicallon(lon::Vector) = cyclicallon(convertlon.(lon))
 # TODO make the function below more generic and be capable of taking in other
 # representations than just OceanographyCruises.jl `CruiseTrack`
 """
@@ -534,4 +537,46 @@ for f in (:horizontalslice, :meridionalslice, :zonalslice, :verticalsection)
         export $f
     end
 end
+
+
+
+#=======================================================
+Functions to grid/interpolate
+=======================================================#
+
+function lonextend(x2D::Array{T,2}) where T
+    x2Dext = Array{eltype(x2D),2}(undef, (size(x2D) .+ (0,2))...)
+    x2Dext[:,2:end-1] .= x2D
+    x2Dext[:,1] .= x2D[:,end]
+    x2Dext[:,end] .= x2D[:,1]
+    return x2Dext
+end
+
+function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
+    # must have lat and lon as metadataarrays?
+    size(x2D) ≠ (length(lat), length(lon)) && error("Dimensions of input and lat/lon don't match")
+    x2D = lonextend(x2D)
+    knots = convertlat.(lat), cyclicallon(lon)
+    itp = interpolate(knots, x2D, Gridded(Linear()))
+    return [itp(y, x) for y in grd.lat, x in grd.lon]
+end
+function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd)
+    # must have lat and lon as metadataarrays?
+    size(x3D) ≠ (length(lat), length(lon), length(depth)) && error("Dimensions of input and lat/lon/depth don't match")
+    x3D = lonextend(x3D)
+    knots = convertlat(lat), cyclicallon(lon), convertdepth(depth)
+    itp = interpolate(knots, x3D, Gridded(Constant()))
+    return [itp(y, x, z) for y in grd.lat, x in grd.lon, z in grd.depth]
+end
+export regrid
+
+
+function regridandpaintsurface(x2D::AbstractArray{T,2} where T, lat, lon, grd)
+    x2D2 = regrid(x2D, lat, lon, grd)
+    x3D = zeros(size(grd))
+    x3D[:,:,1] .= x2D2
+    return x3D[vec(iswet(grd))]
+end
+export regridandpaintsurface
+
 
