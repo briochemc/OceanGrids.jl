@@ -1,6 +1,6 @@
 
 """
-    iswet(grid)
+    iswet(grd)
 
 Returns the 3D BitArray of wet boxes of the grid.
 """
@@ -8,28 +8,28 @@ iswet(g::T) where {T<:OceanGrid} = g.wet3D
 export iswet
 
 """
-    latvec(grid)
+    latvec(grd)
 
 Returns the vector (wet points) of latitudes (units stripped).
 """
 latvec(g::T) where {T<:OceanGrid} = ustrip.(g.lat_3D[iswet(g)])
 
 """
-    lonvec(grid)
+    lonvec(grd)
 
 Returns the vector (wet points) of longitudes (units stripped).
 """
 lonvec(g::T) where {T<:OceanGrid} = ustrip.(g.lon_3D[iswet(g)])
 
 """
-    depthvec(grid)
+    depthvec(grd)
 
 Returns the vector (wet points) of depths (units stripped).
 """
 depthvec(g::T) where {T<:OceanGrid} = ustrip.(g.depth_3D[iswet(g)])
 
 """
-    topdepthvec(grid)
+    topdepthvec(grd)
 
 Returns the vector (wet points) of top depths (units stripped).
 (top depths = depth of the top of the box.)
@@ -37,7 +37,7 @@ Returns the vector (wet points) of top depths (units stripped).
 topdepthvec(g::T) where {T<:OceanGrid} = ustrip.(g.depth_top_3D[iswet(g)])
 
 """
-    bottomdepthvec(grid)
+    bottomdepthvec(grd)
 
 Returns the vector (wet points) of bottom depths (units stripped).
 (bottom depths = depth of the bottom of the box.)
@@ -76,11 +76,11 @@ function rearrange_into_3Darray(x, wet3D::BitArray)
     return x3d
 end
 """
-    rearrange_into_3Darray(x, grid)
+    rearrange_into_3Darray(x, grd)
 
 Returns a 3D array of `x` rearranged to the wet boxes of the grid.
 """
-rearrange_into_3Darray(x, grid) = rearrange_into_3Darray(x, grid.wet3D)
+rearrange_into_3Darray(x, grd) = rearrange_into_3Darray(x, grd.wet3D)
 
 vectorize(x3D::Array{T,3} where T, grd) = x3D[iswet(grd)]
 
@@ -204,12 +204,12 @@ function buildIbelow(wet3D, iwet)
     return In[idx[:], :][iwet, iwet]
 end
 """
-    buildIbelow(grid)
+    buildIbelow(grd)
 
 Builds the shifted-diagonal sparse matrix of the indices of below neighbours for `grid`.
 See `buildIbelow(wet3D, iwet)`.
 """
-buildIbelow(grid) = buildIbelow(grid.wet3D, indices_of_wet_boxes(grid))
+buildIbelow(grd) = buildIbelow(grd.wet3D, indices_of_wet_boxes(grd))
 export buildIbelow
 
 """
@@ -222,12 +222,12 @@ lies directly above the box represented by the linear index j.
 """
 buildIabove(wet3D, iwet) = copy(transpose(buildIbelow(wet3D, iwet)))
 """
-    buildIabove(grid)
+    buildIabove(grd)
 
-Builds the shifted-diagonal sparse matrix of the indices of above neighbours for `grid`.
+Builds the shifted-diagonal sparse matrix of the indices of above neighbours for `grd`.
 See `buildIabove(wet3D, iwet)`.
 """
-buildIabove(grid) = buildIabove(grid.wet3D, indices_of_wet_boxes(grid))
+buildIabove(grd) = buildIabove(grd.wet3D, indices_of_wet_boxes(grd))
 export buildIabove
 
 
@@ -238,11 +238,11 @@ vectors, and constants
 ===================================#
 
 """
-    array_of_volumes(grid)
+    array_of_volumes(grd)
 
-Returns the 3D array of volumes of grid boxes.
+Returns the 3D array of volumes of grd boxes.
 """
-array_of_volumes(grid) = grid.volume_3D
+array_of_volumes(grd) = grd.volume_3D
 export array_of_volumes
 
 
@@ -253,11 +253,11 @@ Returns the vector of the indices of wet grid boxes.
 """
 indices_of_wet_boxes(wet3D::BitArray) = findall(vec(wet3D))
 """
-    indices_of_wet_boxes(grid)
+    indices_of_wet_boxes(grd)
 
 Returns the vector of the indices of wet grid boxes.
 """
-indices_of_wet_boxes(grid) = indices_of_wet_boxes(grid.wet3D)
+indices_of_wet_boxes(grd) = indices_of_wet_boxes(grd.wet3D)
 export indices_of_wet_boxes
 
 """
@@ -267,11 +267,11 @@ Returns the number of wet grid boxes.
 """
 number_of_wet_boxes(wet3D::BitArray) = length(indices_of_wet_boxes(wet3D))
 """
-    number_of_wet_boxes(grid)
+    number_of_wet_boxes(grd)
 
 Returns the number of wet grid boxes.
 """
-number_of_wet_boxes(grid) = number_of_wet_boxes(grid.wet3D)
+number_of_wet_boxes(grd) = number_of_wet_boxes(grd.wet3D)
 export number_of_wet_boxes
 
 """
@@ -279,31 +279,32 @@ export number_of_wet_boxes
 
 Returns the vector of volumes of wet boxes.
 """
-vector_of_volumes(grid) = array_of_volumes(grid)[indices_of_wet_boxes(grid.wet3D)]
-export vector_of_volumes
+vector_of_volumes(grd) = array_of_volumes(grd)[indices_of_wet_boxes(grd.wet3D)]
+volumevec(grd) = ustrip.(vector_of_volumes(grd))
+export vector_of_volumes, volumevec
 
 """
-    vector_of_depths(grid)
+    vector_of_depths(grd)
 
 Returns the vector of depths of the center of wet boxes.
 """
-vector_of_depths(grid) = grid.depth_3D[indices_of_wet_boxes(grid.wet3D)]
+vector_of_depths(grd) = grd.depth_3D[indices_of_wet_boxes(grd.wet3D)]
 export vector_of_depths
 
 """
-    vector_of_top_depths(grid)
+    vector_of_top_depths(grd)
 
 Returns the vector of depths of the top of wet boxes.
 """
-vector_of_top_depths(grid) = grid.depth_top_3D[indices_of_wet_boxes(grid.wet3D)]
+vector_of_top_depths(grd) = grd.depth_top_3D[indices_of_wet_boxes(grd.wet3D)]
 export vector_of_top_depths
 
 """
-    vector_of_bottom_depths(grid)
+    vector_of_bottom_depths(grd)
 
 Returns the vector of depths of the bottom of wet boxes.
 """
-vector_of_bottom_depths(grid) = 2vector_of_depths(grid) - vector_of_top_depths(grid)
+vector_of_bottom_depths(grd) = 2vector_of_depths(grd) - vector_of_top_depths(grd)
 export vector_of_bottom_depths
 
 #===================================
@@ -384,7 +385,7 @@ function meridionalslice(x3D, grd; lon=nothing)
     isnothing(lon) && error("you must specify the longitude, e.g., `lon=100`")
     lon = convertlon(lon)
     ix = findlonindex(lon, grd)
-    return permutedims(view(x3D,:,ix,:), [2,1])
+    return PermutedDimsArray(view(x3D,:,ix,:), (2,1))
 end
 """
     zonalslice(x, grd; lat)
@@ -395,7 +396,7 @@ function zonalslice(x3D, grd; lat=nothing)
     isnothing(lat) && error("you must specify the latitude, e.g., `lat=-30`")
     lat = convertlat(lat)
     iy = findlatindex(lat, grd)
-    return permutedims(view(x3D,iy,:,:), [2,1])
+    return PermutedDimsArray(view(x3D,iy,:,:), (2,1))
 end
 
 """
@@ -408,10 +409,8 @@ function depthprofile(x, grd; lonlat=nothing)
     lon, lat = lonlat
     lon, lat = convertlon(lon), convertlat(lat)
     x3D = rearrange_into_3Darray(x, grd)
-    ndepth = length(grd.depth)
-    knots = (grd.lat, grd.lon, 1:ndepth)
-    itp = interpolate(knots, x3D, (Gridded(Linear()), Gridded(Linear()), NoInterp()))
-    return itp(lat, lon, 1:ndepth)
+    iy, ix = findlatindex(lat, grd), findlonindex(lon, grd)
+    return view(x3D,iy,ix,:)
 end
 export depthprofile
 
@@ -429,7 +428,7 @@ function integral(x3D, grd, mask3D=iswet(grd); dims=(1,2,3))
     return dropdims(nansum(x3D .* w3D .* mask3D, dims=dims) ./ any(.!isnan.(mask3D), dims=dims), dims=dims)
 end
 nansum(x; kwargs...) = sum(x .* .!isnan.(x); kwargs...)
-∫dxdydz(x3D, grd, mask3D=iswet(grd)) = integral(x3D, grd, mask3D)
+∫dxdydz(x3D, grd, mask3D=iswet(grd)) = integral(x3D, grd, mask3D)[1]
 ∫dx(x3D, grd, mask3D=iswet(grd))     = integral(x3D, grd, mask3D; dims=2)
 ∫dy(x3D, grd, mask3D=iswet(grd))     = integral(x3D, grd, mask3D; dims=1)
 ∫dz(x3D, grd, mask3D=iswet(grd))     = integral(x3D, grd, mask3D; dims=3)
