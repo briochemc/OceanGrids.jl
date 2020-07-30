@@ -75,7 +75,7 @@ end
             @test zonalslice(x, base_grd, lat=15) isa PermutedDimsArray{Float64,2}
             @test depthprofile(x, base_grd, lonlat=(330,15)) isa SubArray{Float64,1}
         end
-        @testset "Integrals and averages" begin
+        @testset "Integrals, averages, and stds" begin
             @test ∫dxdy(x, base_grd) isa Vector{T} where {T<:Quantity}
             @test ∫dz(x, base_grd) isa Array{T,2} where {T<:Quantity}
             @test ∫dy(x, base_grd) isa Array{T,2} where {T<:Quantity}
@@ -86,11 +86,16 @@ end
             @test meridionalmean(x, base_grd) isa Array{Float64,2}
             @test zonalmean(x, base_grd) isa Array{Float64,2}
             @test totalmean(x, base_grd) isa Float64
+            @test horizontalstd(x, base_grd) isa Vector{Float64}
+            @test verticalstd(x, base_grd) isa Array{Float64,2}
+            @test meridionalstd(x, base_grd) isa Array{Float64,2}
+            @test zonalstd(x, base_grd) isa Array{Float64,2}
+            @test totalstd(x, base_grd) isa Float64
         end
         @testset "Regridding" begin
             lat, lon = collect(-80:20:80), collect(15:30:360)
             y2D = cosd.(lat) * sind.(lon)'
-            @test_broken regrid(y2D, lat, lon, base_grd) isa Array{Float64,2}
+            @test regrid(y2D, lat, lon, base_grd) isa Array{Float64,2}
             @test_broken regridandpaintsurface(y2d, lat, lon, base_grd) isa Array{Float64,3}
         end
     end

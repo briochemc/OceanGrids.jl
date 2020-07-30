@@ -451,19 +451,40 @@ for f in (:horizontal, :vertical, :meridional, :zonal, :total)
     fint = Symbol(string(f, "integral"))
     fmean = Symbol(string(f, "mean"))
     favg = Symbol(string(f, "average"))
+    fstd = Symbol(string(f, "std"))
     @eval begin
         $fmean(x, grd, args...; kwargs...) = $fint(x, grd, args...; kwargs...) ./ $fint(1.0, grd, args...; kwargs...)
         $favg = $fmean
+        $fstd(x, grd, args...; kwargs...) = sqrt.($favg(abs2.(x - paint3D($favg(x, grd, args...; kwargs...), grd)), grd, args...; kwargs...))
         export $favg
     end
 end
 
+"""
+    paint3D(x, grd)
+
+Returns a 3D array of the size of `grd` that copies the values of `x` along the dimensions it lacks.
+
+This is useful, e.g., when `x` is a 1D profile, a 2D map, or a 2D zonal average and you want to "copy"
+it onto the full 3D array.
+"""
+function paint3D(x, grd)
+    length(unique(size(grd))) ≠ length(size(grd)) && @warn "paint3D might not work because of the grid size"
+    dimsout = [findfirst(nx .== collect(size(grd))) for nx in size(x)]
+    szin, szout = [1,1,1], collect(size(grd))
+    szout[dimsout] .= 1
+    szin[dimsout] .= size(grd)[dimsout]
+    return repeat(reshape(x, Tuple(szin)), outer=szout)
+end
+paint3D(x::Number, grd) = x * iswet(grd)
+paint3D(x::Array{T,3} where T, grd) = x
+
 # Allow all the integral/average functions to work when `x` is supplied as a vector
-for f in (:∫dxdy,    :horizontalmean,
-          :∫dz,      :verticalmean,
-          :∫dy,      :meridionalmean,
-          :∫dx,      :zonalmean,
-          :∫dxdydz,  :totalmean)
+for f in (:∫dxdy,    :horizontalmean, :horizontalstd,
+          :∫dz,      :verticalmean,   :verticalstd,
+          :∫dy,      :meridionalmean, :meridionalstd,
+          :∫dx,      :zonalmean,      :zonalstd,
+          :∫dxdydz,  :totalmean,      :totalstd)
     @eval begin
         $f(x::Vector, grd, mask=1; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd, rearrange_into_3Darray(mask, grd); kwargs...)
         export $f
