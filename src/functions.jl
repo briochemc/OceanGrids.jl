@@ -562,16 +562,16 @@ function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     size(x2D) ≠ (length(lat), length(lon)) && error("Dimensions of input and lat/lon don't match")
     x2D = lonextend(x2D)
     knots = convertlat.(lat), cyclicallon(lon)
-    itp = interpolate(knots, x2D, Gridded(Linear()))
+    itp = LinearInterpolation(knots, x2D, extrapolation_bc = Flat())
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
 function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd)
     # must have lat and lon as metadataarrays?
     size(x3D) ≠ (length(lat), length(lon), length(depth)) && error("Dimensions of input and lat/lon/depth don't match")
     x3D = lonextend(x3D)
-    knots = ustrip.(convertlat.(lat)), ustrip.(cyclicallon(lon)), ustrip.(convertdepth.(depth)) # need to ustrip (bug in Interpolations?)
-    itp = interpolate(knots, x3D, Gridded(Constant()))
-    return [itp(y, x, z) for y in ustrip.(grd.lat), x in ustrip.(grd.lon), z in ustrip.(grd.depth)] # need to ustrip (bug in Interpolations?)
+    knots = convertlat.(lat), cyclicallon(lon), convertdepth.(depth)
+    itp = LinearInterpolation(knots, x3D, extrapolation_bc = Flat())
+    return [itp(y, x, z) for y in grd.lat, x in grd.lon, z in grd.depth]
 end
 export regrid
 
