@@ -91,6 +91,7 @@ end
             @test meridionalstd(x, base_grd) isa Array{Float64,2}
             @test zonalstd(x, base_grd) isa Array{Float64,2}
             @test totalstd(x, base_grd) isa Float64
+            @test zcumsum(x, base_grd) isa Vector{Float64}
         end
         @testset "Regridding" begin
             lat, lon = collect(-80:20:80), collect(15:30:360)

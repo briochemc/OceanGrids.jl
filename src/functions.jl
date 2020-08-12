@@ -605,4 +605,13 @@ function regridandpaintsurface(x2D::AbstractArray{T,2} where T, lat, lon, grd)
 end
 export regridandpaintsurface
 
+"""
+    zcumsum(x, grd)
 
+Returns the cumulative sum of `x` along the `z` dimension.
+"""
+function zcumsum(x, grd)
+    x3D = rearrange_into_3Darray(x, grd)
+    return vectorize(cumsum(x3D, dims=3), grd)
+end
+export zcumsum
