@@ -103,7 +103,7 @@ end
             lats, lons, depths = [-10, 10, 80], [-100, -50, 120], [10, 100, 1000]
             vs = [-10, -5, -4]
             foo = regrid(vs, lats, lons, depths, base_grd)
-            @test foo isa Vector{Float64}
+            @test foo isa Vector{eltype(vs)}
         end
     end
 

@@ -594,8 +594,8 @@ function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd)
     itp = LinearInterpolation(knots, x3D, extrapolation_bc = Flat())
     return [itp(y, x, z) for y in grd.lat, x in grd.lon, z in grd.depth]
 end
-function regrid(vs, lats, lons, depths, grd)
-    out = zeros(count(iswet(grd)))
+function regrid(vs::Vector{T}, lats, lons, depths, grd) where T
+    out = zeros(T, count(iswet(grd)))
     for (i, v) in zip(regrid_indices(lats, lons, depths, tree(grd)), vs)
         out[i] += v
     end
