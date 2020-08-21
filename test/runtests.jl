@@ -93,11 +93,17 @@ end
             @test totalstd(x, base_grd) isa Float64
             @test zcumsum(x, base_grd) isa Vector{Float64}
         end
-        @testset "Regridding" begin
+        @testset "Regridding arrays" begin
             lat, lon = collect(-80:20:80), collect(15:30:360)
             y2D = cosd.(lat) * sind.(lon)'
             @test regrid(y2D, lat, lon, base_grd) isa Array{Float64,2}
             @test_broken regridandpaintsurface(y2d, lat, lon, base_grd) isa Array{Float64,3}
+        end
+        @testset "Regridding vectors" begin
+            lats, lons, depths = [-10, 10, 80], [-100, -50, 120], [10, 100, 1000]
+            vs = [-10, -5, -4]
+            foo = regrid(vs, lats, lons, depths, base_grd)
+            @test foo isa Vector{Float64}
         end
     end
 
