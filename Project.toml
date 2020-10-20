@@ -1,7 +1,7 @@
 name = "OceanGrids"
 uuid = "cfe838f4-859f-11e9-2ea1-df7d4e7c3537"
 authors = ["Benoit Pasquier <briochemc@gmail.com>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
@@ -11,7 +11,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-Interpolations = "0.12"
+Interpolations = "0.12, 0.13"
 NearestNeighbors = "0.4"
 Unitful = "1"
 julia = "1"

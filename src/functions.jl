@@ -521,7 +521,7 @@ cyclicallon(lon::Vector) = cyclicallon(convertlon.(lon))
 """
     verticalsection(x3D, grd; ct=nothing)
 
-Returns a 2D array of the vertical section that follows the cruise track `ct`.
+Returns a tuple of `(d, depth, x2D)` where the 2D array is the vertical section that follows the cruise track `ct` and `d` is the distance.
 This is made to work with the OceanographyCruises.jl package.
 """
 function verticalsection(x3D, grd; ct=nothing)
@@ -544,6 +544,76 @@ function verticalsection(x3D, grd; ct=nothing)
     return d, grd.depth, [itp(ustrip.((lat, lon, d))...) for d in grd.depth, (lat,lon) in zip(y, x)]
 end
 
+function verticalsection2(x3D, grd; ct=nothing)
+    isnothing(ct) && error("you must include the cruise track with `ct=...`")
+    # Create the interpolation object
+    #x3D = lonextend(x3D)
+    #knots = ustrip.((grd.lat, cyclicallon(grd.lon), grd.depth)) # not needed
+    #itp = interpolate(knots, x3D, Gridded(Constant()))          # not needed
+    # convert lat and lon (TODO check if necessary)
+    ctlats = [convertlat(st.lat) for st in ct.stations]
+    ctlons = [convertlon(st.lon) for st in ct.stations]
+    bl = baselon(ctlons)
+    ctlons = shiftlon(ctlons, bl=bl)
+    # compute distance
+    distance = vcat(0.0u"km", cumsum(diff(ct)))
+    # remove identical stations (lat,lon)
+    idx = findall(diff(distance) .> 0u"km")
+    push!(idx, length(ct))
+    d = view(distance, idx)
+    y = view(ctlats, idx)
+    x = view(ctlons, idx)
+	# intersections
+    xe = lonedges(grd)
+    ye = latedges(grd)
+	dix = intersections(d, x, shiftlon(xe, bl=bl))
+	diy = intersections(d, y, ye)
+	ext_d = [d[1]; sort(vcat(dix, diy)); d[end]] # extended distance with intersections values
+	# mid points (to get z value between intersections)
+	mid_d = [0.5(ext_d[i] + ext_d[i+1]) for i in 1:length(ext_d)-1]
+	itpx = LinearInterpolation(d, x)
+    itpy = LinearInterpolation(d, y)
+	x2 = itpx(mid_d)
+    y2 = itpy(mid_d)
+    @show extrema(shiftlon(x2, bl=0°))
+	ix = [searchsortedfirst(xe, shiftlon(x, bl=0°), lt=≤) - 1 for x in x2]
+    iy = [searchsortedfirst(ye, y) - 1 for y in y2]
+    return ext_d, depthedges(grd), [x3D[j,i,k] for k in 1:length(grd.depth), (j,i) in zip(iy,ix)]
+end
+
+# aux functions for vertical section delimited by edges of boxes
+edges(x::Vector, dx::Vector) = [x .- 0.5 .* dx; x[end] + 0.5dx[end]]
+edges(grd::OceanGrid) = lonedges(grd), latedges(grd), depthedges(grd)
+lonedges(grd::OceanGrid) = edges(grd.lon, grd.δlon)
+latedges(grd::OceanGrid) = edges(grd.lat, grd.δlat)
+depthedges(grd::OceanGrid) = edges(grd.depth, grd.δdepth)
+
+#======================================================
+Functions for plotting scatter transect on top of section heatmap
+======================================================#
+"""
+    intersections(x::Vector{T}, y, ylevs)
+
+Returns an array of values in `x` coordinates of the intersections
+of the linearly interpolated plot of `y` as a function of `x` with the `ylevs`.
+"""
+function intersections(x::AbstractArray{T}, y, ylevs) where T
+	out = T[]
+	for i in 1:length(x) - 1
+		mini_x = view(x, i:i+1)
+		mini_y = view(y, i:i+1)
+		idx = sortperm(mini_y)
+		a, b = view(mini_y, idx)
+		itp = LinearInterpolation(mini_y[idx], mini_x[idx], extrapolation_bc=Line())
+		for x_intersect in itp(ylevs[a .< ylevs .≤ b])
+			push!(out, x_intersect)
+		end
+	end
+	return out
+end
+shiftlon(x; bl=baselon(x)) = @. mod(mod(x - bl, 360°), 360°) + bl # enforces 0 ≤ m < 360 (https://github.com/JuliaLang/julia/issues/36310)
+baselon(x) = (any(0° .≤ x .< 90°) && any(270° .≤ x .< 360°)) ? -180.0° : 0.0°
+
 
 
 
@@ -551,7 +621,7 @@ end
 Allow functions to work when `x` is supplied as a vector
 =======================================================#
 
-for f in (:horizontalslice, :meridionalslice, :zonalslice, :verticalsection)
+for f in (:horizontalslice, :meridionalslice, :zonalslice, :verticalsection, :verticalsection2)
     @eval begin
         $f(x::Vector, grd; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd; kwargs...)
         export $f
