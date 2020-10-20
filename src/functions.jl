@@ -546,10 +546,6 @@ end
 
 function verticalsection2(x3D, grd; ct=nothing)
     isnothing(ct) && error("you must include the cruise track with `ct=...`")
-    # Create the interpolation object
-    #x3D = lonextend(x3D)
-    #knots = ustrip.((grd.lat, cyclicallon(grd.lon), grd.depth)) # not needed
-    #itp = interpolate(knots, x3D, Gridded(Constant()))          # not needed
     # convert lat and lon (TODO check if necessary)
     ctlats = [convertlat(st.lat) for st in ct.stations]
     ctlons = [convertlon(st.lon) for st in ct.stations]
@@ -575,7 +571,6 @@ function verticalsection2(x3D, grd; ct=nothing)
     itpy = LinearInterpolation(d, y)
 	x2 = itpx(mid_d)
     y2 = itpy(mid_d)
-    @show extrema(shiftlon(x2, bl=0°))
 	ix = [searchsortedfirst(xe, shiftlon(x, bl=0°), lt=≤) - 1 for x in x2]
     iy = [searchsortedfirst(ye, y) - 1 for y in y2]
     return ext_d, depthedges(grd), [x3D[j,i,k] for k in 1:length(grd.depth), (j,i) in zip(iy,ix)]
