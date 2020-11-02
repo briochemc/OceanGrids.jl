@@ -103,7 +103,7 @@ function Interpolations.interpolate(x, g::T) where {T<:OceanGrid}
     return extrapolate(itp, (Flat(), Periodic(), Flat())) # extrapolate periodically
 end
 function Interpolations.interpolate(x, g::OceanGrid, lat, lon, depth; itp=interpolate(x,g))
-    return itp(ustrip(lat), ustrip.(lon), ustrip.(depth))
+    return itp(ustrip.(lat), ustrip.(lon), ustrip.(depth))
 end
 function Interpolations.interpolate(x, g::OceanGrid, lats::Vector, lons::Vector, depths::Vector; itp=interpolate(x,g))
     return [itp(y,x,z) for (y,x,z) in zip(ustrip.(lats), ustrip.(lons), ustrip.(depths))]
