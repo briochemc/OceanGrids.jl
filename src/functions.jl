@@ -265,7 +265,7 @@ export indices_of_wet_boxes
 
 Returns the number of wet grid boxes.
 """
-number_of_wet_boxes(wet3D::BitArray) = length(indices_of_wet_boxes(wet3D))
+number_of_wet_boxes(wet3D::BitArray) = sum(wet3D)
 """
     number_of_wet_boxes(grd)
 
