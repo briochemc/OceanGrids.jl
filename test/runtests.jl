@@ -62,6 +62,7 @@ end
             @test x3D isa Array{Float64,3}
             x2 = vectorize(x3D, base_grd)
             @test x2 == x
+            @test_throws ErrorException vectorize(rand(10,10,10), base_grd)
         end
         @testset "interpolations" begin
         end

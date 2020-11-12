@@ -82,7 +82,17 @@ Returns a 3D array of `x` rearranged to the wet boxes of the grid.
 """
 rearrange_into_3Darray(x, grd) = rearrange_into_3Darray(x, grd.wet3D)
 
-vectorize(x3D::Array{T,3} where T, grd) = x3D[iswet(grd)]
+"""
+    vectorize(x3D, grd)
+
+Returns the 1D vector corresponding to the 3D field of `x3D` at the wet boxes of `grd`.
+
+This function essentially returns `x3D[iswet(grd)]` but with some additional checks.
+"""
+function vectorize(x3D::Array{T,3} where T, grd)
+    size(x3D) ≠ size(grd) && error("The size of your 3D array does not match the grid size")
+    x3D[iswet(grd)]
+end
 
 export rearrange_into_3Darray, vectorize
 
@@ -679,7 +689,7 @@ function regridandpaintsurface(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     x2D2 = regrid(x2D, lat, lon, grd)
     x3D = zeros(size(grd))
     x3D[:,:,1] .= x2D2
-    return x3D[vec(iswet(grd))]
+    return vectorize(x3D, grd)
 end
 export regridandpaintsurface
 
