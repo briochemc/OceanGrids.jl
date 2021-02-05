@@ -496,7 +496,7 @@ for f in (:∫dxdy,    :horizontalmean, :horizontalstd,
           :∫dx,      :zonalmean,      :zonalstd,
           :∫dxdydz,  :totalmean,      :totalstd)
     @eval begin
-        $f(x::Vector, grd, mask=1; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd, rearrange_into_3Darray(mask, grd); kwargs...)
+        $f(x::AbstractVector, grd, mask=1; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd, rearrange_into_3Darray(mask, grd); kwargs...)
         export $f
     end
 end
