@@ -511,21 +511,21 @@ Vertical sections
 # to be used by interpolation functions.
 # These assume that the longitude is in (0,360) and that
 # the longitude is stored in the 2nd dimension (lat,lon,depth)
-function lonextend(x3D::Array{T,3}) where T
+function lonextend(x3D::AbstractArray{T,3}) where T
     x3Dext = Array{T,3}(undef, (size(x3D) .+ (0,2,0))...)
     x3Dext[:,2:end-1,:] .= x3D
     x3Dext[:,1,:] .= x3D[:,end,:]
     x3Dext[:,end,:] .= x3D[:,1,:]
     return x3Dext
 end
-function cyclicallon(lon::Vector{T}) where T<:Quantity
+function cyclicallon(lon::AbstractVector{T}) where T<:Quantity
     lonext = Vector{T}(undef, length(lon) + 2)
     lonext[2:end-1] .= lon
     lonext[1] = lon[end] - 360°
     lonext[end] = lon[1] + 360°
     return lonext
 end
-cyclicallon(lon::Vector) = cyclicallon(convertlon.(lon))
+cyclicallon(lon::AbstractVector) = cyclicallon(convertlon.(lon))
 # TODO make the function below more generic and be capable of taking in other
 # representations than just OceanographyCruises.jl `CruiseTrack`
 """
@@ -639,7 +639,7 @@ end
 Functions to grid/interpolate
 =======================================================#
 
-function lonextend(x2D::Array{T,2}) where T
+function lonextend(x2D::AbstractArray{T,2}) where T
     x2Dext = Array{eltype(x2D),2}(undef, (size(x2D) .+ (0,2))...)
     x2Dext[:,2:end-1] .= x2D
     x2Dext[:,1] .= x2D[:,end]
@@ -656,8 +656,13 @@ Returns `x2D` (or `x3D`) interpolated onto `grd`.
 function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     # must have lat and lon as metadataarrays?
     size(x2D) ≠ (length(lat), length(lon)) && error("Dimensions of input and lat/lon don't match")
-    x2D = lonextend(x2D)
+    # need to rearrange in case data was in (-180, 180)
+    lon = convertlon.(lon)
+    ilon = sortperm(lon)
+    sort!(lon)
+    x2D = view(x2D, :, ilon)
     knots = convertlat.(lat), cyclicallon(lon)
+    x2D = lonextend(x2D)
     itp = LinearInterpolation(knots, x2D, extrapolation_bc = Flat())
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
