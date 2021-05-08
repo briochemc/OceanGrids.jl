@@ -609,10 +609,12 @@ function intersections(x::AbstractArray{T}, y, ylevs) where T
 		mini_y = view(y, i:i+1)
 		idx = sortperm(mini_y)
 		a, b = view(mini_y, idx)
-		itp = LinearInterpolation(mini_y[idx], mini_x[idx], extrapolation_bc=Line())
-		for x_intersect in itp(ylevs[a .< ylevs .≤ b])
-			push!(out, x_intersect)
-		end
+        if a ≠ b
+		    itp = LinearInterpolation(mini_y[idx], mini_x[idx], extrapolation_bc=Line())
+		    for x_intersect in itp(ylevs[a .< ylevs .≤ b])
+		    	push!(out, x_intersect)
+		    end
+        end
 	end
 	return out
 end
