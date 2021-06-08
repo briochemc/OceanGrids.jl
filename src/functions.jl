@@ -118,11 +118,8 @@ end
 function Interpolations.interpolate(x, g::OceanGrid, lats::Vector, lons::Vector, depths::Vector; itp=interpolate(x,g))
     return [itp(y,x,z) for (y,x,z) in zip(ustrip.(lats), ustrip.(lons), ustrip.(depths))]
 end
-function Interpolations.interpolate(x, g::OceanGrid, MD::NamedTuple; itp=interpolate(x,g))
-    return interpolate(x, g, MD.lat, MD.lon, MD.depth; itp=itp)
-end
 function Interpolations.interpolate(x, g::OceanGrid, obs; itp=interpolate(x,g))
-    return interpolate(x, g, obs.metadata; itp=itp)
+    return interpolate(x, g, obs.lat, obs.lon, obs.depth; itp=itp)
 end
 Interpolations.interpolate(x, g::OceanGrid, ::Missing; itp=nothing) = missing
 export interpolate
@@ -130,7 +127,7 @@ export interpolate
 """
     iswet(g, lat, lon, depth)
     iswet(g, lats, lons, depths)
-    iswet(g, metadata)
+    iswet(g, obs)
 
 Returns a `BitArray` of the provided locations that are "in" a wet box of `g`.
 
@@ -147,10 +144,10 @@ iswet(g, ::Missing; itp=nothing) = missing
 
 """
     interpolationmatrix(g, lats, lons, depths)
-    interpolationmatrix(g, metadata)
+    interpolationmatrix(g, obs)
 
 Returns the sparse matrix `M` such that `M*x` is the model vector `x` interpolated
-onto the provided locations/metadata.
+onto the provided locations in the obs table.
 
 Technically, this requires a linear interpolation, in the sense that
 `interpolation(x) = M * x` for some `M`, which seems to require a nearest neighbor
@@ -656,7 +653,6 @@ end
 Returns `x2D` (or `x3D`) interpolated onto `grd`.
 """
 function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
-    # must have lat and lon as metadataarrays?
     size(x2D) ≠ (length(lat), length(lon)) && error("Dimensions of input and lat/lon don't match")
     # need to rearrange in case data was in (-180, 180)
     lon = convertlon.(lon)
@@ -669,7 +665,6 @@ function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
 function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd)
-    # must have lat and lon as metadataarrays?
     size(x3D) ≠ (length(lat), length(lon), length(depth)) && error("Dimensions of input and lat/lon/depth don't match")
     x3D = lonextend(x3D)
     knots = convertlat.(lat), cyclicallon(lon), convertdepth.(depth)
