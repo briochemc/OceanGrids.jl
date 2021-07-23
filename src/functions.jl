@@ -664,13 +664,17 @@ function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     itp = LinearInterpolation(knots, x2D, extrapolation_bc = Flat())
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
-function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd)
+function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd; interpolate_nans=false)
+    interpolate_nans && any(isnan, x3D) && @warn "Be aware that NaNs will propagate with interpolation!"
     size(x3D) ≠ (length(lat), length(lon), length(depth)) && error("Dimensions of input and lat/lon/depth don't match")
+    !interpoklate_nans && (x3D = inpaint(x3D)) && @warn "NaNs have been inpainted!"
     x3D = lonextend(x3D)
     knots = convertlat.(lat), cyclicallon(lon), convertdepth.(depth)
     itp = LinearInterpolation(knots, x3D, extrapolation_bc = Flat())
     return [itp(y, x, z) for y in grd.lat, x in grd.lon, z in grd.depth]
 end
+
+#TODO Rename to rebin
 function regrid(vs::Vector{T}, lats, lons, depths, grd) where T
     out = zeros(T, count(iswet(grd)))
     for (i, v) in zip(regrid_indices(lats, lons, depths, tree(grd)), vs)

@@ -5,6 +5,7 @@ using Unitful: °
 using Interpolations
 using LinearAlgebra, SparseArrays
 using NearestNeighbors
+using Inpaintings
 
 abstract type OceanGrid end
 
