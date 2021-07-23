@@ -12,6 +12,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
+Inpaintings = "0.3"
 Interpolations = "0.12, 0.13"
 NearestNeighbors = "0.4"
 Unitful = "1"
