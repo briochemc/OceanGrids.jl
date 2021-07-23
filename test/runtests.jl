@@ -99,6 +99,17 @@ end
             y2D = cosd.(lat) * sind.(lon)'
             @test regrid(y2D, lat, lon, base_grd) isa Array{Float64,2}
             @test_broken regridandpaintsurface(y2d, lat, lon, base_grd) isa Array{Float64,3}
+            depth = [10, 20, 30, 50, 100]
+            y3D = y2D .* reshape(sqrt.(depth), (1,1,length(depth)))
+            @test regrid(y3D, lat, lon, depth, base_grd) isa Array{Float64,3}
+            y3D_with_nans = copy(y3D)
+            y3D_with_nans[1:end÷2] .= NaN
+            y_regridded_with_nans = regrid(y3D_with_nans, lat, lon, depth, base_grd; interpolate_nans=true)
+            @test y_regridded_with_nans isa Array{Float64,3}
+            @test any(isnan, y_regridded_with_nans)
+            y_regridded_no_nans = regrid(y3D_with_nans, lat, lon, depth, base_grd; interpolate_nans=false)
+            @test y_regridded_no_nans isa Array{Float64,3}
+            @test all(!isnan, y_regridded_no_nans)
         end
         @testset "Regridding vectors" begin
             lats, lons, depths = [-10, 10, 80], [-100, -50, 120], [10, 100, 1000]

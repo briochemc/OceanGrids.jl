@@ -665,9 +665,13 @@ function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
 function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd; interpolate_nans=false)
-    interpolate_nans && any(isnan, x3D) && @warn "Be aware that NaNs will propagate with interpolation!"
     size(x3D) ≠ (length(lat), length(lon), length(depth)) && error("Dimensions of input and lat/lon/depth don't match")
-    !interpoklate_nans && (x3D = inpaint(x3D)) && @warn "NaNs have been inpainted!"
+    if interpolate_nans
+        any(isnan, x3D) && @warn "Be aware that NaNs will propagate with interpolation!"
+    else
+        x3D = inpaint(x3D)
+        @warn "NaNs have been inpainted!"
+    end
     x3D = lonextend(x3D)
     knots = convertlat.(lat), cyclicallon(lon), convertdepth.(depth)
     itp = LinearInterpolation(knots, x3D, extrapolation_bc = Flat())
