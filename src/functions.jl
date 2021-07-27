@@ -1,4 +1,9 @@
 
+
+const AVec = AbstractVector
+const AMat = AbstractMatrix
+const AArr = AbstractArray
+
 """
     iswet(grd)
 
@@ -89,7 +94,7 @@ Returns the 1D vector corresponding to the 3D field of `x3D` at the wet boxes of
 
 This function essentially returns `x3D[iswet(grd)]` but with some additional checks.
 """
-function vectorize(x3D::Array{T,3} where T, grd)
+function vectorize(x3D::AArr{T,3} where T, grd)
     size(x3D) ≠ size(grd) && error("The size of your 3D array does not match the grid size")
     x3D[iswet(grd)]
 end
@@ -186,8 +191,8 @@ export interpolationmatrix
     etp = extrapolate(stp, (Periodic(), Throw())) # extrapolate periodically
 =#
 
-periodic_longitude(x3D::Array{T,3}) where T = view(x3D,:,[1:size(x3D,2); 1],:)
-periodic_longitude(v::Vector{T}) where T = [v; v[1]+360]
+periodic_longitude(x3D::AArr{T,3}) where T = view(x3D,:,[1:size(x3D,2); 1],:)
+periodic_longitude(v::AVec{T}) where T = [v; v[1]+360]
 
 #===================================
 Off-diaongal matrices
@@ -484,7 +489,7 @@ function paint3D(x, grd)
     return repeat(reshape(x, Tuple(szin)), outer=szout)
 end
 paint3D(x::Number, grd) = x * iswet(grd)
-paint3D(x::Array{T,3} where T, grd) = x
+paint3D(x::AArr{T,3} where T, grd) = x
 
 # Allow all the integral/average functions to work when `x` is supplied as a vector
 for f in (:∫dxdy,    :horizontalmean, :horizontalstd,
@@ -493,7 +498,7 @@ for f in (:∫dxdy,    :horizontalmean, :horizontalstd,
           :∫dx,      :zonalmean,      :zonalstd,
           :∫dxdydz,  :totalmean,      :totalstd)
     @eval begin
-        $f(x::AbstractVector, grd, mask=1; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd, rearrange_into_3Darray(mask, grd); kwargs...)
+        $f(x::AVec, grd, mask=1; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd, rearrange_into_3Darray(mask, grd); kwargs...)
         export $f
     end
 end
@@ -508,21 +513,21 @@ Vertical sections
 # to be used by interpolation functions.
 # These assume that the longitude is in (0,360) and that
 # the longitude is stored in the 2nd dimension (lat,lon,depth)
-function lonextend(x3D::AbstractArray{T,3}) where T
+function lonextend(x3D::AArr{T,3}) where T
     x3Dext = Array{T,3}(undef, (size(x3D) .+ (0,2,0))...)
     x3Dext[:,2:end-1,:] .= x3D
     x3Dext[:,1,:] .= x3D[:,end,:]
     x3Dext[:,end,:] .= x3D[:,1,:]
     return x3Dext
 end
-function cyclicallon(lon::AbstractVector{T}) where T<:Quantity
+function cyclicallon(lon::AVec{T}) where T<:Quantity
     lonext = Vector{T}(undef, length(lon) + 2)
     lonext[2:end-1] .= lon
     lonext[1] = lon[end] - 360°
     lonext[end] = lon[1] + 360°
     return lonext
 end
-cyclicallon(lon::AbstractVector) = cyclicallon(convertlon.(lon))
+cyclicallon(lon::AVec) = cyclicallon(convertlon.(lon))
 # TODO make the function below more generic and be capable of taking in other
 # representations than just OceanographyCruises.jl `CruiseTrack`
 """
@@ -584,7 +589,7 @@ function verticalsection2(x3D, grd; ct=nothing)
 end
 
 # aux functions for vertical section delimited by edges of boxes
-edges(x::Vector, dx::Vector) = [x .- 0.5 .* dx; x[end] + 0.5dx[end]]
+edges(x::AVec, dx::AVec) = [x .- 0.5 .* dx; x[end] + 0.5dx[end]]
 edges(grd::OceanGrid) = lonedges(grd), latedges(grd), depthedges(grd)
 lonedges(grd::OceanGrid) = edges(grd.lon, grd.δlon)
 latedges(grd::OceanGrid) = edges(grd.lat, grd.δlat)
@@ -599,7 +604,7 @@ Functions for plotting scatter transect on top of section heatmap
 Returns an array of values in `x` coordinates of the intersections
 of the linearly interpolated plot of `y` as a function of `x` with the `ylevs`.
 """
-function intersections(x::AbstractArray{T}, y, ylevs) where T
+function intersections(x::AArr{T}, y, ylevs) where T
 	out = T[]
 	for i in 1:length(x) - 1
 		mini_x = view(x, i:i+1)
@@ -627,7 +632,7 @@ Allow functions to work when `x` is supplied as a vector
 
 for f in (:horizontalslice, :meridionalslice, :zonalslice, :verticalsection, :verticalsection2)
     @eval begin
-        $f(x::Vector, grd; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd; kwargs...)
+        $f(x::AVec, grd; kwargs...) = $f(rearrange_into_3Darray(x, grd), grd; kwargs...)
         export $f
     end
 end
@@ -638,7 +643,7 @@ end
 Functions to grid/interpolate
 =======================================================#
 
-function lonextend(x2D::AbstractArray{T,2}) where T
+function lonextend(x2D::AArr{T,2}) where T
     x2Dext = Array{eltype(x2D),2}(undef, (size(x2D) .+ (0,2))...)
     x2Dext[:,2:end-1] .= x2D
     x2Dext[:,1] .= x2D[:,end]
@@ -652,7 +657,7 @@ end
 
 Returns `x2D` (or `x3D`) interpolated onto `grd`.
 """
-function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
+function regrid(x2D::AArr{T,2} where T, lat, lon, grd)
     size(x2D) ≠ (length(lat), length(lon)) && error("Dimensions of input and lat/lon don't match")
     # need to rearrange in case data was in (-180, 180)
     lon = convertlon.(lon)
@@ -664,7 +669,7 @@ function regrid(x2D::AbstractArray{T,2} where T, lat, lon, grd)
     itp = LinearInterpolation(knots, x2D, extrapolation_bc = Flat())
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
-function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd; interpolate_nans=false)
+function regrid(x3D::AArr{T,3} where T, lat, lon, depth, grd; interpolate_nans=false)
     size(x3D) ≠ (length(lat), length(lon), length(depth)) && error("Dimensions of input and lat/lon/depth don't match")
     if interpolate_nans
         any(isnan, x3D) && @warn "Be aware that NaNs will propagate with interpolation!"
@@ -679,7 +684,7 @@ function regrid(x3D::AbstractArray{T,3} where T, lat, lon, depth, grd; interpola
 end
 
 #TODO Rename to rebin
-function regrid(vs::Vector{T}, lats, lons, depths, grd) where T
+function regrid(vs::AVec{T}, lats, lons, depths, grd) where T
     out = zeros(T, count(iswet(grd)))
     for (i, v) in zip(regrid_indices(lats, lons, depths, tree(grd)), vs)
         out[i] += v
@@ -695,7 +700,7 @@ tree(grd) = KDTree([lonvec(grd)'; latvec(grd)'; depthvec(grd)'])
 export regrid
 
 
-function regridandpaintsurface(x2D::AbstractArray{T,2} where T, lat, lon, grd)
+function regridandpaintsurface(x2D::AArr{T,2} where T, lat, lon, grd)
     x2D2 = regrid(x2D, lat, lon, grd)
     x3D = zeros(size(grd))
     x3D[:,:,1] .= x2D2
