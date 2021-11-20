@@ -186,7 +186,7 @@ function OceanGrid(nlat::Int, nlon::Int, ndepth::Int)
 end
 
 function Base.show(io::IO, g::OceanGrid)
-    println("OceanGrid of size $(g.nlat)×$(g.nlon)×$(g.ndepth) (lat×lon×depth)")
+    print("OceanGrid of size $(g.nlat)×$(g.nlon)×$(g.ndepth) (lat×lon×depth)")
 end
 
 """
