@@ -117,6 +117,12 @@ function Interpolations.interpolate(x, g::T) where {T<:OceanGrid}
     itp = interpolate(knots, A, Gridded(Constant()))
     return extrapolate(itp, (Flat(), Periodic(), Flat())) # extrapolate periodically
 end
+function Interpolations.interpolate(x, g::T) where {T<:OceanCurvilinearGrid}
+    # This is weird: I am overloading Interpolations.interpolate with a NearestNeighbors function,
+    # but it's to keep things working. TODO: Think of a better way to do all this
+    brutetree = BruteTree([lonvec(g)'; latvec(g)'; depthvec(g)'])
+    return (y,x,z) -> nn(brutetree, [x'; y'; z'])[1]
+end
 function Interpolations.interpolate(x, g::OceanGrid, lat, lon, depth; itp=interpolate(x,g))
     return itp(ustrip.(lat), ustrip.(lon), ustrip.(depth))
 end
@@ -594,6 +600,17 @@ edges(grd::OceanGrid) = lonedges(grd), latedges(grd), depthedges(grd)
 lonedges(grd::OceanGrid) = edges(grd.lon, grd.δlon)
 latedges(grd::OceanGrid) = edges(grd.lat, grd.δlat)
 depthedges(grd::OceanGrid) = edges(grd.depth, grd.δdepth)
+
+# Function to make δlon from lon (approximation)
+function edges_from_midpoints(midpoints::Vector{T}, lims) where T
+	N = length(midpoints)
+    I_left = [I zeros(N)]
+    I_right = [zeros(N) I]
+    A = (I_left + I_right) / 2
+    M = [A; 1 zeros(N)'; zeros(N)' 1]
+    edges = M \ [midpoints; collect(lims)]
+    return edges
+end
 
 #======================================================
 Functions for plotting scatter transect on top of section heatmap

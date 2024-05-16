@@ -6,13 +6,13 @@
 
 <p>
   <a href="https://github.com/briochemc/OceanGrids.jl/actions">
-    <img src="https://img.shields.io/github/workflow/status/briochemc/OceanGrids.jl/Mac%20OS%20X?label=OSX&logo=Apple&logoColor=white&style=flat-square">
+    <img src="https://img.shields.io/github/actions/workflow/status/briochemc/OceanGrids.jl/mac.yml?label=OSX&logo=Apple&logoColor=white&style=flat-square">
   </a>
   <a href="https://github.com/briochemc/OceanGrids.jl/actions">
-    <img src="https://img.shields.io/github/workflow/status/briochemc/OceanGrids.jl/Linux?label=Linux&logo=Linux&logoColor=white&style=flat-square">
+    <img src="https://img.shields.io/github/actions/workflow/status/briochemc/OceanGrids.jl/linux.yml?label=Linux&logo=Linux&logoColor=white&style=flat-square">
   </a>
   <a href="https://github.com/briochemc/OceanGrids.jl/actions">
-    <img src="https://img.shields.io/github/workflow/status/briochemc/OceanGrids.jl/Windows?label=Windows&logo=Windows&logoColor=white&style=flat-square">
+    <img src="https://img.shields.io/github/actions/workflow/status/briochemc/OceanGrids.jl/windows.yml?label=Windows&logo=Windows&logoColor=white&style=flat-square">
   </a>
   <a href="https://codecov.io/gh/briochemc/OceanGrids.jl">
     <img src="https://img.shields.io/codecov/c/github/briochemc/OceanGrids.jl/master?label=Codecov&logo=codecov&logoColor=white&style=flat-square">
