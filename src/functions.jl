@@ -585,8 +585,8 @@ function verticalsection2(x3D, grd; ct=nothing)
 	ext_d = [d[1]; sort(vcat(dix, diy)); d[end]] # extended distance with intersections values
 	# mid points (to get z value between intersections)
 	mid_d = [0.5(ext_d[i] + ext_d[i+1]) for i in 1:length(ext_d)-1]
-	itpx = LinearInterpolation(d, x)
-    itpy = LinearInterpolation(d, y)
+	itpx = linear_interpolation(d, x)
+    itpy = linear_interpolation(d, y)
 	x2 = itpx(mid_d)
     y2 = itpy(mid_d)
 	ix = [searchsortedfirst(xe, shiftlon(x, bl=0°), lt=≤) - 1 for x in x2]
@@ -629,7 +629,7 @@ function intersections(x::AArr{T}, y, ylevs) where T
 		idx = sortperm(mini_y)
 		a, b = view(mini_y, idx)
         if a ≠ b
-		    itp = LinearInterpolation(mini_y[idx], mini_x[idx], extrapolation_bc=Line())
+		    itp = linear_interpolation(mini_y[idx], mini_x[idx], extrapolation_bc=Line())
 		    for x_intersect in itp(ylevs[a .< ylevs .≤ b])
 		    	push!(out, x_intersect)
 		    end
@@ -683,7 +683,7 @@ function regrid(x2D::AArr{T,2} where T, lat, lon, grd)
     x2D = view(x2D, :, ilon)
     knots = convertlat.(lat), cyclicallon(lon)
     x2D = lonextend(x2D)
-    itp = LinearInterpolation(knots, x2D, extrapolation_bc = Flat())
+    itp = linear_interpolation(knots, x2D, extrapolation_bc = Flat())
     return [itp(y, x) for y in grd.lat, x in grd.lon]
 end
 function regrid(x3D::AArr{T,3} where T, lat, lon, depth, grd; interpolate_nans=false)
@@ -696,7 +696,7 @@ function regrid(x3D::AArr{T,3} where T, lat, lon, depth, grd; interpolate_nans=f
     end
     x3D = lonextend(x3D)
     knots = convertlat.(lat), cyclicallon(lon), convertdepth.(depth)
-    itp = LinearInterpolation(knots, x3D, extrapolation_bc = Flat())
+    itp = linear_interpolation(knots, x3D, extrapolation_bc = Flat())
     return [itp(y, x, z) for y in grd.lat, x in grd.lon, z in grd.depth]
 end
 
